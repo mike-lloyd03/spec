@@ -1,11 +1,18 @@
-use color_eyre::{Result, eyre::Context};
+use cliclack::{confirm, intro, log, note, outro};
+use color_eyre::{
+    Result,
+    eyre::{Context, bail},
+};
 use sha2::{Digest, Sha256};
-use std::fs;
+use std::{fs, io::Write};
 use toml::Table;
 
-use crate::services::{FileArtifact, ManagedService, ServiceState, get_service_by_name};
+use crate::{
+    cli::RunArgs,
+    services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
+};
 
-pub fn run(dry_run: bool) -> Result<()> {
+pub fn run(args: &RunArgs) -> Result<()> {
     let config_dir = xdg::BaseDirectories::new()
         .get_config_home()
         .expect("User HOME should exist")
@@ -17,8 +24,6 @@ pub fn run(dry_run: bool) -> Result<()> {
         .expect("config dir should be unicode")
         .to_owned();
 
-    println!("Reading configuration from {config_file_path}");
-
     let content = fs::read_to_string(config_dir).context(format!(
         "Failed to open config file at '{config_file_path}'",
     ))?;
@@ -28,10 +33,11 @@ pub fn run(dry_run: bool) -> Result<()> {
     for (key, value) in root {
         if let Some(table) = value.as_table() {
             if let Some(service) = get_service_by_name(&key) {
-                println!("\n--> Processing service: {}", key);
-                apply_service(service, table, dry_run)?;
+                intro(format!("Service: {}", key))?;
+                apply_service(service, table, args)?;
+                outro("\n")?;
             } else {
-                println!("?? Unknown service section: {}", key);
+                log::error(format!("Unknown service section: {}", key))?;
             }
         }
     }
@@ -39,27 +45,27 @@ pub fn run(dry_run: bool) -> Result<()> {
     Ok(())
 }
 
-fn apply_service(service: Box<dyn ManagedService>, config: &Table, dry_run: bool) -> Result<()> {
-    let (files, service_state) = service.plan(config)?;
+fn apply_service(service: Box<dyn ManagedService>, config: &Table, args: &RunArgs) -> Result<()> {
+    let (files, service_state) = service.plan(config, &args.sys_config_dir)?;
     let mut needs_reload = false;
 
     for file in files {
-        if ensure_file(&file, dry_run)? {
-            println!("[Changed] {}", file.path.display());
+        if ensure_file(&file, args)? {
+            log::warning(format!("File {} [Changed]", file.path.display()))?;
             needs_reload = true;
         } else {
-            println!("[OK] {}", file.path.display());
+            log::step(format!("File {} [OK]", file.path.display()))?;
         }
     }
 
     if let Some(state) = service_state {
-        apply_systemd(state, needs_reload, dry_run)?;
+        apply_systemd(state, needs_reload, args)?;
     }
 
     Ok(())
 }
 
-fn ensure_file(artifact: &FileArtifact, dry_run: bool) -> Result<bool> {
+fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
     let mut hasher = Sha256::new();
     hasher.update(artifact.content.as_bytes());
     let new_hash = hex::encode(hasher.finalize());
@@ -74,31 +80,56 @@ fn ensure_file(artifact: &FileArtifact, dry_run: bool) -> Result<bool> {
     };
 
     if Some(new_hash) != current_hash {
-        println!(
-            "Write to {:?} (Permissions: {:o})",
-            artifact.path, artifact.permissions
+        note(
+            artifact.path.to_str().unwrap_or_default(),
+            artifact.content.clone(),
+        )?;
+
+        let prompt_text = format!(
+            "{} has changed. Overwrite?",
+            artifact.path.to_str().unwrap_or("unknown")
         );
-        println!("Content:\n------\n{}\n------", artifact.content);
-        if !dry_run {
-            // create file
+
+        let should_continue;
+
+        if args.noconfirm {
+            should_continue = true;
+            log::step(prompt_text)?;
+        } else {
+            should_continue = confirm(prompt_text).initial_value(true).interact()?;
         }
+
+        if should_continue && !args.dry_run {
+            if let Some(parent_dir) = artifact.path.parent() {
+                fs::DirBuilder::new().recursive(true).create(parent_dir)?;
+            } else {
+                bail!(
+                    "Parent directory for {} does not exist",
+                    artifact.path.to_str().expect("")
+                );
+            }
+
+            let mut file = fs::File::create(&artifact.path)?;
+            file.write_all(artifact.content.as_bytes())?;
+        }
+
         return Ok(true);
     }
 
     Ok(false)
 }
 
-fn apply_systemd(state: ServiceState, needs_reload: bool, dry_run: bool) -> Result<()> {
+fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Result<()> {
     if needs_reload {
-        println!("Reload service: {}", state.name);
-        if !dry_run {
+        log::step(format!("Reload service: {}", state.name))?;
+        if !args.dry_run {
             // std::process::Command::new("systemctl").arg("reload")...
         }
     }
 
-    println!(
+    log::info(format!(
         "[Service] Ensure {} is enabled={} active={}",
         state.name, state.enabled, state.running
-    );
+    ))?;
     Ok(())
 }

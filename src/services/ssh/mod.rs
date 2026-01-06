@@ -123,17 +123,21 @@ impl ManagedService for SshService {
         "ssh"
     }
 
-    fn plan(&self, config_table: &Table) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    fn plan(
+        &self,
+        config_table: &Table,
+        sys_config_dir: &str,
+    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: SshConfig = self.parse_config(config_table)?;
 
         let mut adapter = KeyValueAdapter::new(" ", "#").bool_style(BoolStyle::YesNo);
 
-        adapter.comment("Managed by tenant");
+        adapter.comment("Managed by tenet");
 
         adapter.parse_struct(&config)?;
 
         let file = FileArtifact {
-            path: PathBuf::from("/etc/ssh/ssh_config"), // Client config path
+            path: PathBuf::from(sys_config_dir).join("ssh/ssh_config"),
             content: adapter.build(),
             permissions: 0o644,
         };

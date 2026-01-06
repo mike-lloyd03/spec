@@ -36,7 +36,11 @@ pub struct ServiceConfig {
 pub trait ManagedService {
     fn name(&self) -> &str;
 
-    fn plan(&self, config: &Table) -> Result<(Vec<FileArtifact>, Option<ServiceState>)>;
+    fn plan(
+        &self,
+        config: &Table,
+        sys_config_dir: &str,
+    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)>;
 
     fn parse_config<T: DeserializeOwned>(&self, config: &Table) -> Result<T>
     where

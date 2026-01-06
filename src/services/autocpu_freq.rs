@@ -17,7 +17,11 @@ impl ManagedService for AutoCpuFreqService {
         "auto-cpufreq"
     }
 
-    fn plan(&self, config_table: &Table) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    fn plan(
+        &self,
+        config_table: &Table,
+        _: &str,
+    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: AutoCpuFreqConfig = self.parse_config(config_table)?;
 
         let service_state = if let Some(state) = config.service {

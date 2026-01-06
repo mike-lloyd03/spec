@@ -14,7 +14,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        cli::Command::Run { dry_run } => commands::run(dry_run),
+        cli::Command::Run(args) => commands::run(&args),
         cli::Command::Unmanaged => commands::unmanaged(),
     }
 }

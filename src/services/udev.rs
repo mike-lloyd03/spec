@@ -46,27 +46,32 @@ impl ManagedService for UdevService {
         "udev"
     }
 
-    fn plan(&self, config: &Table) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    fn plan(
+        &self,
+        config: &Table,
+        sys_config_dir: &str,
+    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: UdevConfig = self.parse_config(config)?;
 
         let mut files = vec![];
 
         let mut adapter = KeyValueAdapter::new("=", "#");
 
-        adapter.comment("Managed by tenant");
+        adapter.comment("Managed by tenet");
 
         adapter.parse_struct(&config)?;
 
         files.push(FileArtifact {
-            path: PathBuf::from("/etc/udev/udev.conf"),
+            path: PathBuf::from(sys_config_dir).join("udev/udev.conf"),
             content: adapter.build(),
             permissions: 0o644,
         });
 
         for (filename, content) in config.rules {
+            let prefixed_content = "# Managed by tenet\n".to_string() + &content;
             files.push(FileArtifact {
-                path: PathBuf::from(format!("/etc/udev/rules.d/{}", filename)),
-                content,
+                path: PathBuf::from(sys_config_dir).join(format!("udev/rules.d/{}", filename)),
+                content: prefixed_content,
                 permissions: 0o644,
             });
         }
