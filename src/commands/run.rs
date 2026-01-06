@@ -118,16 +118,16 @@ fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
 
         return Ok(true);
     } else {
-        let perms = fs::Permissions::from_mode(artifact.permissions);
-        let metadata = fs::metadata(&artifact.path)?;
+        let target_perms = fs::Permissions::from_mode(artifact.permissions);
+        let existing_perms = fs::metadata(&artifact.path)?.permissions();
 
         // Need to mask off the file-type bits from the metadata
-        if metadata.permissions().mode() & 0o777 != perms.mode() {
+        if existing_perms.mode() & 0o777 != target_perms.mode() {
             let prompt_text = format!(
-                "Permissions are incorrect for {}. (Are {:o} should be {:o})",
+                "Permissions are incorrect for {}. (Are {:o} should be {:o}).\nCorrect them?",
                 artifact.path.to_str().unwrap_or_default(),
-                metadata.permissions().mode() & 0o777,
-                perms.mode()
+                existing_perms.mode() & 0o777,
+                target_perms.mode()
             );
 
             let should_continue;
@@ -140,8 +140,9 @@ fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
             }
 
             if should_continue {
-                fs::set_permissions(&artifact.path, perms)?;
+                fs::set_permissions(&artifact.path, target_perms)?;
             }
+            return Ok(true);
         }
     }
 
