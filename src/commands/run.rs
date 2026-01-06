@@ -4,7 +4,7 @@ use color_eyre::{
     eyre::{Context, bail},
 };
 use sha2::{Digest, Sha256};
-use std::{fs, io::Write};
+use std::{fs, io::Write, os::unix::fs::PermissionsExt, path::PathBuf};
 use toml::Table;
 
 use crate::{
@@ -111,9 +111,38 @@ fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
 
             let mut file = fs::File::create(&artifact.path)?;
             file.write_all(artifact.content.as_bytes())?;
+
+            let perms = fs::Permissions::from_mode(artifact.permissions);
+            file.set_permissions(perms)?;
         }
 
         return Ok(true);
+    } else {
+        let perms = fs::Permissions::from_mode(artifact.permissions);
+        let metadata = fs::metadata(&artifact.path)?;
+
+        // Need to mask off the file-type bits from the metadata
+        if metadata.permissions().mode() & 0o777 != perms.mode() {
+            let prompt_text = format!(
+                "Permissions are incorrect for {}. (Are {:o} should be {:o})",
+                artifact.path.to_str().unwrap_or_default(),
+                metadata.permissions().mode() & 0o777,
+                perms.mode()
+            );
+
+            let should_continue;
+
+            if args.noconfirm {
+                should_continue = true;
+                log::step(prompt_text)?;
+            } else {
+                should_continue = confirm(prompt_text).initial_value(true).interact()?;
+            }
+
+            if should_continue {
+                fs::set_permissions(&artifact.path, perms)?;
+            }
+        }
     }
 
     Ok(false)
