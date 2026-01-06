@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum AddressFamily {
     Any,
@@ -8,7 +8,7 @@ pub enum AddressFamily {
     Inet6,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum AllowForwarding {
     Yes,
@@ -18,7 +18,7 @@ pub enum AllowForwarding {
     Remote,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum Compression {
     Yes,
@@ -26,14 +26,14 @@ pub enum Compression {
     No,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum FingerprintHash {
     Md5,
     Sha256,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum GatewayPorts {
     Yes,
@@ -41,7 +41,7 @@ pub enum GatewayPorts {
     Clientspecified,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum IgnoreRhosts {
     Yes,
@@ -49,7 +49,7 @@ pub enum IgnoreRhosts {
     No,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum LogLevel {
     Quiet,
@@ -63,7 +63,7 @@ pub enum LogLevel {
     Debug3,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum PermitRootLogin {
     Yes,
@@ -72,7 +72,7 @@ pub enum PermitRootLogin {
     No,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum PermitTunnel {
     Yes,
@@ -81,7 +81,7 @@ pub enum PermitTunnel {
     No,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum SyslogFacility {
     Daemon,

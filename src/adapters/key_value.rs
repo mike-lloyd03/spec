@@ -5,7 +5,6 @@ use toml::Value;
 pub enum BoolStyle {
     TrueFalse,
     YesNo,
-    OnOff,
 }
 
 pub struct KeyValueAdapter {
@@ -71,14 +70,12 @@ impl KeyValueAdapter {
                 let s = self.format_bool(*b);
                 self.set(key, s);
             }
-            // HANDLE ARRAYS (Vec<String> in struct)
             Value::Array(arr) => {
                 for item in arr {
-                    // Recursively call to print "Key Value" for every item in array
                     self.process_value(key, item);
                 }
             }
-            _ => {} // Skip tables/inline-tables for flat KV files
+            _ => {}
         }
     }
 
@@ -86,7 +83,6 @@ impl KeyValueAdapter {
         match self.bool_style {
             BoolStyle::TrueFalse => val.to_string(),
             BoolStyle::YesNo => if val { "yes" } else { "no" }.to_string(),
-            BoolStyle::OnOff => if val { "on" } else { "off" }.to_string(),
         }
     }
 

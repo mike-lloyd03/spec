@@ -1,17 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "lowercase")]
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub enum AddKeysToAgent {
     Yes,
     No,
     Ask,
     Confirm,
     #[serde(untagged)]
-    Time(String), // Handles "1h", "30m"
+    Time(String),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum StrictHostKeyChecking {
     Yes,
@@ -21,16 +21,16 @@ pub enum StrictHostKeyChecking {
     Off,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "lowercase")]
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub enum AddressFamily {
     Any,
     Inet,
     Inet6,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "lowercase")]
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub enum CanonicalizeHostname {
     Yes,
     No,
@@ -38,8 +38,8 @@ pub enum CanonicalizeHostname {
     None,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "lowercase")]
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub enum RequestTty {
     Yes,
     No,
@@ -47,7 +47,7 @@ pub enum RequestTty {
     Auto,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum Tunnel {
     Yes,
@@ -56,7 +56,7 @@ pub enum Tunnel {
     No,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum PubkeyAuthentication {
     Yes,
@@ -65,7 +65,7 @@ pub enum PubkeyAuthentication {
     HostBound,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum YesNoAsk {
     Yes,
@@ -73,7 +73,7 @@ pub enum YesNoAsk {
     Ask,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum YesNoAskAuto {
     Yes,
@@ -83,7 +83,7 @@ pub enum YesNoAskAuto {
     AutoAsk,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum YesNoPath {
     Yes,
@@ -91,8 +91,8 @@ pub enum YesNoPath {
     Path,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "lowercase")]
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub enum ControlPersist {
     Yes,
     No,
@@ -100,7 +100,7 @@ pub enum ControlPersist {
     Time(String),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum LogLevel {
     Quiet,

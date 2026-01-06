@@ -7,7 +7,6 @@ use crate::services::{FileArtifact, ManagedService, ServiceConfig, ServiceState}
 pub struct AutoCpuFreqService;
 
 #[derive(Serialize, Deserialize, Default)]
-#[serde(rename_all(serialize = "PascalCase"))]
 struct AutoCpuFreqConfig {
     #[serde(skip_serializing)]
     pub service: Option<ServiceConfig>,
