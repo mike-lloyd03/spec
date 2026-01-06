@@ -91,8 +91,6 @@ impl KeyValueAdapter {
     }
 
     pub fn build(&self) -> String {
-        let mut output = self.lines.join("\n");
-        output.push('\n');
-        output
+        self.lines.join("\n")
     }
 }

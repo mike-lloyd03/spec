@@ -82,7 +82,7 @@ fn ensure_file(artifact: &services::FileArtifact) -> Result<bool> {
             "Write to {:?} (Permissions: {:o})",
             artifact.path, artifact.permissions
         );
-        println!("Content:\n{}", artifact.content);
+        println!("Content:\n------\n{}\n------", artifact.content);
         return Ok(true);
     }
 
