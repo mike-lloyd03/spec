@@ -5,6 +5,10 @@ pub struct Cli {
     /// The command to run
     #[command(subcommand)]
     pub command: Command,
+
+    /// Set an alternate config directory
+    #[arg(short, long)]
+    pub config_dir: Option<String>,
 }
 
 #[derive(Subcommand)]

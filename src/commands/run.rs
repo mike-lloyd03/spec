@@ -1,36 +1,19 @@
 use cliclack::{confirm, intro, log, note, outro};
-use color_eyre::{
-    Result,
-    eyre::{Context, bail},
-};
+use color_eyre::{Result, eyre::bail};
 use sha2::{Digest, Sha256};
-use std::{fs, io::Write, os::unix::fs::PermissionsExt, path::PathBuf};
+use std::{fs, io::Write, os::unix::fs::PermissionsExt};
 use toml::Table;
 
 use crate::{
     cli::RunArgs,
+    config::Config,
     services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
 };
 
-pub fn run(args: &RunArgs) -> Result<()> {
-    let config_dir = xdg::BaseDirectories::new()
-        .get_config_home()
-        .expect("User HOME should exist")
-        .join("tenant")
-        .join("config.toml");
+pub fn run(args: &RunArgs, config: Config) -> Result<()> {
+    let service_config = config.load_services()?;
 
-    let config_file_path = config_dir
-        .to_str()
-        .expect("config dir should be unicode")
-        .to_owned();
-
-    let content = fs::read_to_string(config_dir).context(format!(
-        "Failed to open config file at '{config_file_path}'",
-    ))?;
-
-    let root: Table = toml::from_str(&content)?;
-
-    for (key, value) in root {
+    for (key, value) in service_config {
         if let Some(table) = value.as_table() {
             if let Some(service) = get_service_by_name(&key) {
                 intro(format!("Service: {}", key))?;
@@ -80,14 +63,61 @@ fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
     };
 
     if Some(new_hash) != current_hash {
-        note(
-            artifact.path.to_str().unwrap_or_default(),
-            artifact.content.clone(),
-        )?;
+        create_file(artifact, args)
+    } else {
+        check_and_fix_permissions(artifact, args)
+    }
+}
 
+fn create_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
+    note(
+        artifact.path.to_str().unwrap_or_default(),
+        artifact.content.clone(),
+    )?;
+
+    let prompt_text = format!(
+        "{} has changed. Overwrite?",
+        artifact.path.to_str().unwrap_or("unknown")
+    );
+
+    let should_continue;
+
+    if args.noconfirm {
+        should_continue = true;
+        log::step(prompt_text)?;
+    } else {
+        should_continue = confirm(prompt_text).initial_value(true).interact()?;
+    }
+
+    if should_continue && !args.dry_run {
+        if let Some(parent_dir) = artifact.path.parent() {
+            fs::DirBuilder::new().recursive(true).create(parent_dir)?;
+        } else {
+            bail!(
+                "Parent directory for {} does not exist",
+                artifact.path.to_str().expect("")
+            );
+        }
+
+        let mut file = fs::File::create(&artifact.path)?;
+        file.write_all(artifact.content.as_bytes())?;
+
+        let perms = fs::Permissions::from_mode(artifact.permissions);
+        file.set_permissions(perms)?;
+    }
+    Ok(true)
+}
+
+fn check_and_fix_permissions(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
+    let target_perms = fs::Permissions::from_mode(artifact.permissions);
+    let existing_perms = fs::metadata(&artifact.path)?.permissions();
+
+    if existing_perms.mode() & 0o777 != target_perms.mode() {
         let prompt_text = format!(
-            "{} has changed. Overwrite?",
-            artifact.path.to_str().unwrap_or("unknown")
+            "Permissions are incorrect for {}. (Are {:o} should be {:o}).\nCorrect them?",
+            artifact.path.to_str().unwrap_or_default(),
+            existing_perms.mode() & 0o777,
+            target_perms.mode()
         );
 
         let should_continue;
@@ -99,53 +129,11 @@ fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
             should_continue = confirm(prompt_text).initial_value(true).interact()?;
         }
 
-        if should_continue && !args.dry_run {
-            if let Some(parent_dir) = artifact.path.parent() {
-                fs::DirBuilder::new().recursive(true).create(parent_dir)?;
-            } else {
-                bail!(
-                    "Parent directory for {} does not exist",
-                    artifact.path.to_str().expect("")
-                );
-            }
-
-            let mut file = fs::File::create(&artifact.path)?;
-            file.write_all(artifact.content.as_bytes())?;
-
-            let perms = fs::Permissions::from_mode(artifact.permissions);
-            file.set_permissions(perms)?;
+        if should_continue {
+            fs::set_permissions(&artifact.path, target_perms)?;
         }
-
         return Ok(true);
-    } else {
-        let target_perms = fs::Permissions::from_mode(artifact.permissions);
-        let existing_perms = fs::metadata(&artifact.path)?.permissions();
-
-        // Need to mask off the file-type bits from the metadata
-        if existing_perms.mode() & 0o777 != target_perms.mode() {
-            let prompt_text = format!(
-                "Permissions are incorrect for {}. (Are {:o} should be {:o}).\nCorrect them?",
-                artifact.path.to_str().unwrap_or_default(),
-                existing_perms.mode() & 0o777,
-                target_perms.mode()
-            );
-
-            let should_continue;
-
-            if args.noconfirm {
-                should_continue = true;
-                log::step(prompt_text)?;
-            } else {
-                should_continue = confirm(prompt_text).initial_value(true).interact()?;
-            }
-
-            if should_continue {
-                fs::set_permissions(&artifact.path, target_perms)?;
-            }
-            return Ok(true);
-        }
     }
-
     Ok(false)
 }
 
