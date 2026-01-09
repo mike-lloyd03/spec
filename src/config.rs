@@ -15,7 +15,7 @@ impl Config {
             xdg::BaseDirectories::new()
                 .get_config_home()
                 .expect("User HOME should exist")
-                .join("tenet")
+                .join("spec")
         };
 
         Ok(Self { base_path })

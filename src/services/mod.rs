@@ -7,11 +7,13 @@ use toml::Table;
 use crate::services::autocpu_freq::AutoCpuFreqService;
 use crate::services::ssh::SshService;
 use crate::services::sshd::SshdService;
+use crate::services::systemd::SystemdService;
 use crate::services::udev::UdevService;
 
 mod autocpu_freq;
 mod ssh;
 mod sshd;
+mod systemd;
 mod udev;
 
 pub struct FileArtifact {
@@ -58,6 +60,7 @@ pub fn get_service_by_name(name: &str) -> Option<Box<dyn ManagedService>> {
         "auto-cpufreq" => Some(Box::new(AutoCpuFreqService)),
         "ssh" => Some(Box::new(SshService)),
         "sshd" => Some(Box::new(SshdService)),
+        "systemd" => Some(Box::new(SystemdService)),
         "udev" => Some(Box::new(UdevService)),
         _ => None,
     }

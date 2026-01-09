@@ -57,7 +57,7 @@ impl ManagedService for UdevService {
 
         let mut adapter = KeyValueAdapter::new("=", "#");
 
-        adapter.comment("Managed by tenet");
+        adapter.comment("Managed by spec");
 
         adapter.parse_struct(&config)?;
 
@@ -68,7 +68,7 @@ impl ManagedService for UdevService {
         });
 
         for (filename, content) in config.rules {
-            let prefixed_content = "# Managed by tenet\n".to_string() + &content;
+            let prefixed_content = "# Managed by spec\n".to_string() + &content;
             files.push(FileArtifact {
                 path: PathBuf::from(sys_config_dir).join(format!("udev/rules.d/{}", filename)),
                 content: prefixed_content,

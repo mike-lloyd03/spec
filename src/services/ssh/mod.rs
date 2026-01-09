@@ -132,7 +132,7 @@ impl ManagedService for SshService {
 
         let mut adapter = KeyValueAdapter::new(" ", "#").bool_style(BoolStyle::YesNo);
 
-        adapter.comment("Managed by tenet");
+        adapter.comment("Managed by spec");
 
         adapter.parse_struct(&config)?;
 
