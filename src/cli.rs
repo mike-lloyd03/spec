@@ -9,6 +9,10 @@ pub struct Cli {
     /// Set an alternate config directory
     #[arg(short, long)]
     pub config_dir: Option<String>,
+
+    /// Set an alternate data directory
+    #[arg(short, long)]
+    pub data_dir: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -18,6 +22,9 @@ pub enum Command {
 
     /// List unmanaged systemd services
     Unmanaged,
+
+    /// Rollback to a previous state
+    Rollback(RollbackArgs),
 }
 
 #[derive(Args)]
@@ -34,3 +41,6 @@ pub struct RunArgs {
     #[arg(long)]
     pub noconfirm: bool,
 }
+
+#[derive(Args)]
+pub struct RollbackArgs {}

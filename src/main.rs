@@ -2,6 +2,7 @@ mod adapters;
 mod cli;
 mod commands;
 mod config;
+mod db;
 mod services;
 
 use clap::Parser;
@@ -19,5 +20,6 @@ fn main() -> Result<()> {
     match cli.command {
         cli::Command::Run(args) => commands::run(&args, config),
         cli::Command::Unmanaged => commands::unmanaged(),
+        cli::Command::Rollback(args) => commands::rollback(&args),
     }
 }

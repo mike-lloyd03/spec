@@ -1,5 +1,6 @@
 use cliclack::{confirm, intro, log, note, outro};
 use color_eyre::{Result, eyre::bail};
+use rusqlite::Connection;
 use sha2::{Digest, Sha256};
 use std::{fs, io::Write, os::unix::fs::PermissionsExt};
 use toml::Table;
@@ -7,15 +8,31 @@ use toml::Table;
 use crate::{
     cli::RunArgs,
     config::Config,
+    db::{db, types::Run},
     services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
 };
 
 pub fn run(args: &RunArgs, config: Config) -> Result<()> {
-    let service_config = config.load_services()?;
+    let conn = db()?;
 
-    for (key, value) in service_config {
+    let services = config.load_services()?;
+
+    process_services(args, &services)?;
+
+    if let Ok(last_run) = Run::get_previous(&conn)
+        && services == last_run.data
+    {
+    } else {
+        save_run(args, &conn, services)?;
+    }
+
+    Ok(())
+}
+
+pub fn process_services(args: &RunArgs, services: &Table) -> Result<()> {
+    for (key, value) in services {
         if let Some(table) = value.as_table() {
-            if let Some(service) = get_service_by_name(&key) {
+            if let Some(service) = get_service_by_name(key) {
                 intro(format!("Service: {}", key))?;
                 apply_service(service, table, args)?;
                 outro("\n")?;
@@ -149,5 +166,12 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
         "[Service] Ensure {} is enabled={} active={}",
         state.name, state.enabled, state.running
     ))?;
+    Ok(())
+}
+
+pub fn save_run(args: &RunArgs, conn: &Connection, service_config: Table) -> Result<()> {
+    let service_table = Table::from(service_config.clone());
+    let run = Run::new(service_table, args.sys_config_dir.clone());
+    run.create(conn)?;
     Ok(())
 }
