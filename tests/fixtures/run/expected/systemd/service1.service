@@ -1,0 +1,10 @@
+[Unit]
+Description=Service 1
+
+[Service]
+ExecStart=echo service1
+Type=oneshot
+Environment='TERM=xterm''VAR1=dog'
+
+[Install]
+WantedBy=multi-user.target.wants

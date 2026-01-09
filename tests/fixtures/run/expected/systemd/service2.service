@@ -1,0 +1,8 @@
+[Unit]
+Description=Service 3
+
+[Service]
+ExecStart=echo service2
+
+[Install]
+WantedBy=multi-user.target.wants graphical.wants

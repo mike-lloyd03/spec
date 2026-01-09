@@ -1,0 +1,5 @@
+# Managed by spec
+AuthorizedKeysFile .ssh/authorized_keys
+PasswordAuthentication no
+PermitRootLogin yes
+Subsystem sftp /usr/lib/ssh/sftp-server
