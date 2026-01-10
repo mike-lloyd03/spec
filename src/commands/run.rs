@@ -49,7 +49,7 @@ fn apply_service(
     config: &Table,
     args: &RunArgs,
 ) -> Result<()> {
-    let (files, service_state) = service.plan(config, app.system_config_dir.to_str().unwrap())?;
+    let (files, service_state) = service.plan(config, &app.system_config_dir)?;
     let mut needs_reload = false;
 
     for file in files {

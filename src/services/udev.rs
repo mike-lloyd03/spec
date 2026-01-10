@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::adapters::key_value::KeyValueAdapter;
 use crate::services::{FileArtifact, ManagedService, ServiceState};
@@ -49,7 +49,7 @@ impl ManagedService for UdevService {
     fn plan(
         &self,
         config: &Table,
-        sys_config_dir: &str,
+        sys_config_dir: &Path,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: UdevConfig = self.parse_config(config)?;
 
@@ -62,7 +62,7 @@ impl ManagedService for UdevService {
         adapter.parse_struct(&config)?;
 
         files.push(FileArtifact {
-            path: PathBuf::from(sys_config_dir).join("udev/udev.conf"),
+            path: sys_config_dir.join("udev/udev.conf"),
             content: adapter.build(),
             permissions: 0o644,
         });
@@ -70,7 +70,7 @@ impl ManagedService for UdevService {
         for (filename, content) in config.rules {
             let prefixed_content = "# Managed by spec\n".to_string() + &content;
             files.push(FileArtifact {
-                path: PathBuf::from(sys_config_dir).join(format!("udev/rules.d/{}", filename)),
+                path: sys_config_dir.join(format!("udev/rules.d/{}", filename)),
                 content: prefixed_content,
                 permissions: 0o644,
             });

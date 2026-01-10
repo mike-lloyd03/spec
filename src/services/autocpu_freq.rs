@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
 use toml::Table;
@@ -20,7 +22,7 @@ impl ManagedService for AutoCpuFreqService {
     fn plan(
         &self,
         config_table: &Table,
-        _: &str,
+        _: &Path,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: AutoCpuFreqConfig = self.parse_config(config_table)?;
 

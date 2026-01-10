@@ -1,11 +1,12 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
 use crate::services::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
+
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use toml::Table;
 mod enums;
 use enums::*;
+use std::path::Path;
 
 pub struct SshdService;
 
@@ -133,7 +134,7 @@ impl ManagedService for SshdService {
     fn plan(
         &self,
         config_table: &Table,
-        sys_config_dir: &str,
+        sys_config_dir: &Path,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: SshdConfig = self.parse_config(config_table)?;
 
@@ -144,7 +145,7 @@ impl ManagedService for SshdService {
         adapter.parse_struct(&config)?;
 
         let file = FileArtifact {
-            path: PathBuf::from(sys_config_dir).join("ssh/sshd_config"),
+            path: sys_config_dir.join("ssh/sshd_config"),
             content: adapter.build(),
             permissions: 0o644,
         };

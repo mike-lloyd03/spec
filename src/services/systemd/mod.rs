@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt::Display, path::Path};
 
 use indexmap::IndexMap;
 use serde::Deserialize;
@@ -135,7 +135,7 @@ impl ManagedService for SystemdService {
     fn plan(
         &self,
         config_table: &toml::Table,
-        sys_config_dir: &str,
+        sys_config_dir: &Path,
     ) -> color_eyre::eyre::Result<(Vec<super::FileArtifact>, Option<super::ServiceState>)> {
         let config: SystemdConfig = self.parse_config(config_table)?;
 
@@ -144,7 +144,7 @@ impl ManagedService for SystemdService {
         if let Some(units) = config.unit_files {
             for unit in units {
                 artifacts.push(FileArtifact {
-                    path: PathBuf::from(sys_config_dir)
+                    path: sys_config_dir
                         .join("systemd/system/multi-user.target.wants")
                         .join(format!("{}.service", unit.name)),
                     content: unit.render(),

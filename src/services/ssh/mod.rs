@@ -2,7 +2,7 @@ use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
 use crate::services::{FileArtifact, ManagedService, ServiceState};
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::Path;
 use toml::Table;
 
 mod enums;
@@ -126,7 +126,7 @@ impl ManagedService for SshService {
     fn plan(
         &self,
         config_table: &Table,
-        sys_config_dir: &str,
+        sys_config_dir: &Path,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: SshConfig = self.parse_config(config_table)?;
 
@@ -137,7 +137,7 @@ impl ManagedService for SshService {
         adapter.parse_struct(&config)?;
 
         let file = FileArtifact {
-            path: PathBuf::from(sys_config_dir).join("ssh/ssh_config"),
+            path: sys_config_dir.join("ssh/ssh_config"),
             content: adapter.build(),
             permissions: 0o644,
         };

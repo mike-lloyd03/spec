@@ -1,7 +1,7 @@
 use color_eyre::{Result, eyre::Context};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use toml::Table;
 
 use crate::services::autocpu_freq::AutoCpuFreqService;
@@ -41,7 +41,7 @@ pub trait ManagedService {
     fn plan(
         &self,
         config: &Table,
-        sys_config_dir: &str,
+        sys_config_dir: &Path,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)>;
 
     fn parse_config<T: DeserializeOwned>(&self, config: &Table) -> Result<T>
