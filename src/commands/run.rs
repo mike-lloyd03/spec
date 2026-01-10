@@ -2,39 +2,40 @@ use cliclack::{confirm, intro, log, note, outro};
 use color_eyre::{Result, eyre::bail};
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
+use spec::App;
 use std::{fs, io::Write, os::unix::fs::PermissionsExt};
 use toml::Table;
 
 use crate::{
     cli::RunArgs,
-    config::Config,
     db::{db, types::Run},
     services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
 };
 
-pub fn run(args: &RunArgs, config: Config) -> Result<()> {
-    let conn = db()?;
+pub fn run(app: &App, args: &RunArgs) -> Result<()> {
+    let conn = db(app)?;
 
-    let services = config.load_services()?;
+    let services = app.load_services()?;
 
-    process_services(args, &services)?;
+    process_services(app, args, &services)?;
 
     if let Ok(last_run) = Run::get_previous(&conn)
         && services == last_run.data
     {
     } else {
-        save_run(args, &conn, services)?;
+        save_run(app, &conn, services)?;
     }
 
     Ok(())
 }
 
-pub fn process_services(args: &RunArgs, services: &Table) -> Result<()> {
+pub fn process_services(app: &App, args: &RunArgs, services: &Table) -> Result<()> {
+    println!("Running data: {:?}", services);
     for (key, value) in services {
         if let Some(table) = value.as_table() {
             if let Some(service) = get_service_by_name(key) {
                 intro(format!("Service: {}", key))?;
-                apply_service(service, table, args)?;
+                apply_service(app, service, table, args)?;
                 outro("\n")?;
             } else {
                 log::error(format!("Unknown service section: {}", key))?;
@@ -45,8 +46,13 @@ pub fn process_services(args: &RunArgs, services: &Table) -> Result<()> {
     Ok(())
 }
 
-fn apply_service(service: Box<dyn ManagedService>, config: &Table, args: &RunArgs) -> Result<()> {
-    let (files, service_state) = service.plan(config, &args.sys_config_dir)?;
+fn apply_service(
+    app: &App,
+    service: Box<dyn ManagedService>,
+    config: &Table,
+    args: &RunArgs,
+) -> Result<()> {
+    let (files, service_state) = service.plan(config, app.system_config_dir.to_str().unwrap())?;
     let mut needs_reload = false;
 
     for file in files {
@@ -169,9 +175,12 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
     Ok(())
 }
 
-pub fn save_run(args: &RunArgs, conn: &Connection, service_config: Table) -> Result<()> {
+pub fn save_run(app: &App, conn: &Connection, service_config: Table) -> Result<()> {
     let service_table = Table::from(service_config.clone());
-    let run = Run::new(service_table, args.sys_config_dir.clone());
+    let run = Run::new(
+        service_table,
+        app.system_config_dir.to_str().unwrap().to_string(),
+    );
     run.create(conn)?;
     Ok(())
 }

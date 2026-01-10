@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::adapters::key_value::KeyValueAdapter;
 use crate::services::{FileArtifact, ManagedService, ServiceState};
 
 use color_eyre::Result;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 
@@ -20,7 +20,7 @@ struct UdevConfig {
     timeout_signal: Option<String>,
 
     #[serde(skip_serializing)]
-    rules: HashMap<String, String>,
+    rules: IndexMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

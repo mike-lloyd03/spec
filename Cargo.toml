@@ -8,6 +8,7 @@ clap = { version = "4.5.54", features = ["derive"] }
 cliclack = "0.3.7"
 color-eyre = "0.6.5"
 hex = "0.4.3"
+indexmap = { version = "2.13.0", features = ["serde"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
 rusqlite_migration = "2.3.0"
 serde = { version = "1.0.228", features = ["derive"] }

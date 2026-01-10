@@ -1,24 +1,26 @@
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, bail};
+use spec::App;
 
 use crate::{
     cli::{RollbackArgs, RunArgs},
-    commands::run::{process_services, save_run},
+    commands::run::process_services,
     db::{db, types::Run},
 };
 
-pub fn rollback(args: &RollbackArgs) -> Result<()> {
-    let conn = db()?;
+pub fn rollback(app: &App, args: &RollbackArgs) -> Result<()> {
+    let conn = db(app)?;
 
     if let Ok(last_run) = Run::get_previous(&conn) {
         let run_args = RunArgs {
             dry_run: false,
-            sys_config_dir: last_run.sys_config_dir,
-            noconfirm: false,
+            noconfirm: args.noconfirm,
         };
 
-        process_services(&run_args, &last_run.data)?;
+        process_services(app, &run_args, &last_run.data)?;
 
-        save_run(&run_args, &conn, last_run.data)?;
+        last_run.delete(&conn)?;
+    } else {
+        bail!("No previous run to rollback to")
     }
 
     Ok(())

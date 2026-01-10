@@ -3,22 +3,20 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use assert_cmd::Command;
-
 pub fn assert_files_match(actual_path: &Path, expected_path: &Path) {
     if !actual_path.exists() {
         panic!("Actual file missing: {:?}", actual_path);
     }
 
-    let actual = fs::read_to_string(actual_path).expect("Failed to read actual output");
+    let actual = fs::read_to_string(actual_path).expect("Failed to read actual output file");
     let actual = actual.trim_end();
 
-    let expected = fs::read_to_string(expected_path).expect("Failed to read expected file");
+    let expected = fs::read_to_string(expected_path).expect("Failed to read expected output file");
     let expected = expected.trim_end();
 
     assert_eq!(
         actual, expected,
-        "Generated config does not match expected file"
+        "Generated output file does not match expected file"
     );
 }
 

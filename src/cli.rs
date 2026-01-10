@@ -9,10 +9,6 @@ pub struct Cli {
     /// Set an alternate config directory
     #[arg(short, long)]
     pub config_dir: Option<String>,
-
-    /// Set an alternate data directory
-    #[arg(short, long)]
-    pub data_dir: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -33,14 +29,14 @@ pub struct RunArgs {
     #[arg(short, long)]
     pub dry_run: bool,
 
-    /// Sets an alternate location for the system configuration directory
-    #[arg(long, default_value = "/etc")]
-    pub sys_config_dir: String,
-
     /// Overwrite existing files without confirmation
     #[arg(long)]
     pub noconfirm: bool,
 }
 
 #[derive(Args)]
-pub struct RollbackArgs {}
+pub struct RollbackArgs {
+    /// Overwrite existing files without confirmation
+    #[arg(long)]
+    pub noconfirm: bool,
+}

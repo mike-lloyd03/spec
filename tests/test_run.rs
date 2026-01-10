@@ -1,5 +1,7 @@
 mod common;
 
+use std::fs;
+
 use assert_cmd::cargo::cargo_bin_cmd;
 use color_eyre::eyre::Result;
 use tempfile::TempDir;
@@ -8,19 +10,20 @@ use crate::common::{assert_files_match, get_fixture_path};
 
 #[test]
 fn test_run() -> Result<()> {
-    let etc_path = TempDir::new()?.path().join("etc");
-
+    let testdir = TempDir::new()?;
+    let etc_path = testdir.path().join("etc");
+    let state_path = testdir.path().join("state");
     let fixture_path = get_fixture_path("run");
     let config_path = fixture_path.join("config");
     let expected_path = fixture_path.join("expected");
 
-    let mut cmd = cargo_bin_cmd!();
-    let assert = cmd
-        .arg("--config-dir")
-        .arg(config_path.to_str().unwrap())
+    fs::create_dir_all(&state_path)?;
+
+    let assert = cargo_bin_cmd!()
+        .env("SPEC_CONFIG_DIR", config_path.to_str().unwrap())
+        .env("SPEC_STATE_DIR", state_path.to_str().unwrap())
+        .env("SPEC_SYSTEM_CONFIG_DIR", etc_path.to_str().unwrap())
         .arg("run")
-        .arg("--sys-config-dir")
-        .arg(etc_path.to_str().unwrap())
         .arg("--noconfirm")
         .assert();
 

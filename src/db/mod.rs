@@ -1,6 +1,7 @@
 use color_eyre::eyre::Result;
 use rusqlite::Connection;
 use rusqlite_migration::{M, Migrations};
+use spec::App;
 
 pub mod types;
 
@@ -14,8 +15,10 @@ const MIGRATIONS: &[M<'_>] = &[M::up(
     "#,
 )];
 
-pub fn db() -> Result<Connection> {
-    let mut conn = Connection::open("spec.db")?;
+pub fn db(app: &App) -> Result<Connection> {
+    let db_path = app.state_dir.join("data.db");
+
+    let mut conn = Connection::open(db_path)?;
 
     let m = Migrations::from_slice(MIGRATIONS);
 

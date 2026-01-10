@@ -1,0 +1,4 @@
+# Managed by spec
+PasswordAuthentication yes
+PermitRootLogin no
+Subsystem sftp /usr/lib/ssh/sftp-server

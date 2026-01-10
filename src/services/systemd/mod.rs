@@ -1,5 +1,6 @@
-use std::{collections::HashMap, fmt::Display, path::PathBuf};
+use std::{fmt::Display, path::PathBuf};
 
+use indexmap::IndexMap;
 use serde::Deserialize;
 
 use crate::services::{FileArtifact, ManagedService};
@@ -34,7 +35,7 @@ pub struct Service {
     pub r#type: Option<ServiceType>,
     pub restart: Option<String>,
     pub user: Option<String>,
-    pub environment: Option<HashMap<String, String>>,
+    pub environment: Option<IndexMap<String, String>>,
 }
 
 #[derive(Debug, Deserialize)]

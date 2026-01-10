@@ -35,6 +35,11 @@ impl Run {
         )?;
         Ok(s)
     }
+
+    pub fn delete(&self, conn: &Connection) -> Result<()> {
+        conn.execute("DELETE from runs where id = ?1", [self.id])?;
+        Ok(())
+    }
 }
 
 impl<'a> TryFrom<&Row<'a>> for Run {
