@@ -1,29 +1,26 @@
 use cliclack::{confirm, intro, log, note, outro};
 use color_eyre::{Result, eyre::bail};
-use rusqlite::Connection;
 use sha2::{Digest, Sha256};
-use spec::App;
 use std::{fs, io::Write, os::unix::fs::PermissionsExt};
 use toml::Table;
 
 use crate::{
+    App,
     cli::RunArgs,
-    db::{db, types::Run},
+    db::types::Run,
     services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
 };
 
 pub fn run(app: &App, args: &RunArgs) -> Result<()> {
-    let conn = db(app)?;
-
     let services = app.load_services()?;
 
     process_services(app, args, &services)?;
 
-    if let Ok(last_run) = Run::get_previous(&conn)
+    if let Ok(last_run) = Run::get_previous(&app.db)
         && services == last_run.data
     {
     } else {
-        save_run(app, &conn, services)?;
+        save_run(app, services)?;
     }
 
     Ok(())
@@ -175,12 +172,12 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
     Ok(())
 }
 
-pub fn save_run(app: &App, conn: &Connection, service_config: Table) -> Result<()> {
+pub fn save_run(app: &App, service_config: Table) -> Result<()> {
     let service_table = Table::from(service_config.clone());
     let run = Run::new(
         service_table,
         app.system_config_dir.to_str().unwrap().to_string(),
     );
-    run.create(conn)?;
+    run.create(&app.db)?;
     Ok(())
 }

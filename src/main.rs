@@ -1,14 +1,8 @@
-mod adapters;
-mod cli;
-mod commands;
-mod db;
-mod services;
-
 use clap::Parser;
 use color_eyre::Result;
-use spec::App;
+use spec::{App, cli, commands};
 
-use crate::cli::Cli;
+use spec::cli::Cli;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -20,5 +14,6 @@ fn main() -> Result<()> {
         cli::Command::Run(args) => commands::run(&app, &args),
         cli::Command::Unmanaged => commands::unmanaged(),
         cli::Command::Rollback(args) => commands::rollback(&app, &args),
+        cli::Command::Verify(args) => commands::verify(&app, &args),
     }
 }

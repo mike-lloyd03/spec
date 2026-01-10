@@ -21,6 +21,9 @@ pub enum Command {
 
     /// Rollback to a previous state
     Rollback(RollbackArgs),
+
+    /// Identifies any issues where the system state differs from expected
+    Verify(VerifyArgs),
 }
 
 #[derive(Args)]
@@ -40,3 +43,6 @@ pub struct RollbackArgs {
     #[arg(long)]
     pub noconfirm: bool,
 }
+
+#[derive(Args)]
+pub struct VerifyArgs {}

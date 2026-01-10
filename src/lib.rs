@@ -1,11 +1,21 @@
+pub mod adapters;
+pub mod cli;
+pub mod commands;
+pub mod db;
+pub mod services;
+
 use color_eyre::Result;
+use rusqlite::Connection;
 use std::{env, fs, path::PathBuf, str::FromStr};
 use toml::Table;
+
+use crate::db::connect_db;
 
 pub struct App {
     pub config_dir: PathBuf,
     pub state_dir: PathBuf,
     pub system_config_dir: PathBuf,
+    pub db: Connection,
 }
 
 impl App {
@@ -19,10 +29,13 @@ impl App {
         let system_config_dir =
             dir_from_env_or_default("SPEC_SYSTEM_CONFIG_DIR", PathBuf::from_str("/env")?)?;
 
+        let db = connect_db(&state_dir)?;
+
         Ok(Self {
             config_dir,
             state_dir,
             system_config_dir,
+            db,
         })
     }
 
