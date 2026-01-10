@@ -10,23 +10,14 @@ pub struct App {
 
 impl App {
     pub fn new() -> Result<Self> {
-        let xdg_dirs = xdg::BaseDirectories::with_prefix("myapp");
+        let xdg_dirs = xdg::BaseDirectories::with_prefix("spec");
 
-        let config_dir = if let Ok(dir) = env::var("SPEC_CONFIG_DIR") {
-            PathBuf::from_str(&dir)?
-        } else {
-            xdg_dirs.config_home.unwrap()
-        };
+        let config_dir = dir_from_env_or_default("SPEC_CONFIG_DIR", xdg_dirs.config_home.unwrap())?;
 
-        let state_dir = if let Ok(dir) = env::var("SPEC_STATE_DIR") {
-            PathBuf::from_str(&dir)?
-        } else {
-            xdg_dirs.state_home.unwrap()
-        };
+        let state_dir = dir_from_env_or_default("SPEC_STATE_DIR", xdg_dirs.state_home.unwrap())?;
 
-        let system_config_dir_str =
-            env::var("SPEC_SYSTEM_CONFIG_DIR").unwrap_or_else(|_| "/etc".to_string());
-        let system_config_dir = PathBuf::from_str(&system_config_dir_str)?;
+        let system_config_dir =
+            dir_from_env_or_default("SPEC_SYSTEM_CONFIG_DIR", PathBuf::from_str("/env")?)?;
 
         Ok(Self {
             config_dir,
@@ -41,24 +32,31 @@ impl App {
         let services_dir = self.config_dir.join("services");
         if services_dir.exists() {
             for entry in fs::read_dir(services_dir)? {
-                let entry = entry?;
-                let path = entry.path();
+                let path = entry?.path();
 
                 if path.extension().and_then(|s| s.to_str()) == Some("toml") {
                     let content = fs::read_to_string(&path)?;
                     let table: Table = toml::from_str(&content)?;
 
-                    Self::merge_tables(&mut merged, table);
+                    merge_tables(&mut merged, table);
                 }
             }
         }
 
         Ok(merged)
     }
+}
 
-    fn merge_tables(base: &mut Table, incoming: Table) {
-        for (key, value) in incoming {
-            base.insert(key, value);
-        }
+fn merge_tables(base: &mut Table, incoming: Table) {
+    for (key, value) in incoming {
+        base.insert(key, value);
     }
+}
+
+fn dir_from_env_or_default(var_name: &str, default: PathBuf) -> Result<PathBuf> {
+    Ok(if let Ok(dir) = env::var(var_name) {
+        PathBuf::from_str(&dir)?
+    } else {
+        default
+    })
 }
