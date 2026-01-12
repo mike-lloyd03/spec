@@ -1,6 +1,6 @@
 use cliclack::{
     confirm, intro,
-    log::{self, info},
+    log::{self, info, warning},
     note, outro,
 };
 use color_eyre::{Result, eyre::bail};
@@ -17,28 +17,41 @@ use crate::{
 
 pub fn run(app: &App, args: &RunArgs) -> Result<()> {
     let services = app.load_services()?;
+    let previous_run = Run::get_previous(&app.db);
 
-    let new_run = Run::new(services.clone(), &app.system_config_dir);
-
-    process_services(app, args, &services)?;
-
-    if let Ok(last_run) = Run::get_previous(&app.db)
+    if let Ok(last_run) = &previous_run
         && services == last_run.data
     {
-    } else {
-        save_run(app, services)?;
+        warning("No changes from previous run")?;
+        return Ok(());
+    }
+
+    let mut managed_files = vec![];
+    process_services(app, args, &services, &mut managed_files)?;
+
+    let mut new_run = Run::new(services.clone(), &app.system_config_dir);
+    new_run.managed_files = managed_files.clone();
+    new_run.create(&app.db)?;
+
+    if let Ok(last_run) = previous_run {
+        rm_old_files(&managed_files, &last_run.managed_files)?;
     }
 
     Ok(())
 }
 
-pub fn process_services(app: &App, args: &RunArgs, services: &Table) -> Result<()> {
+pub fn process_services(
+    app: &App,
+    args: &RunArgs,
+    services: &Table,
+    managed_files: &mut Vec<String>,
+) -> Result<()> {
     println!("Running data: {:?}", services);
     for (key, value) in services {
         if let Some(table) = value.as_table() {
             if let Some(service) = get_service_by_name(key) {
                 intro(format!("Service: {}", key))?;
-                apply_service(app, service, table, args)?;
+                apply_service(app, service, table, args, managed_files)?;
                 outro("\n")?;
             } else {
                 log::error(format!("Unknown service section: {}", key))?;
@@ -54,11 +67,19 @@ fn apply_service(
     service: Box<dyn ManagedService>,
     config: &Table,
     args: &RunArgs,
+    managed_files: &mut Vec<String>,
 ) -> Result<()> {
     let (files, service_state) = service.plan(config, &app.system_config_dir)?;
     let mut needs_reload = false;
 
     for file in files {
+        managed_files.push(
+            file.path
+                .to_str()
+                .expect("PathBuf should convert")
+                .to_owned(),
+        );
+
         if ensure_file(&file, args)? {
             log::warning(format!("File {} [Changed]", file.path.display()))?;
             needs_reload = true;
@@ -174,15 +195,13 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
     Ok(())
 }
 
-pub fn save_run(app: &App, service_config: Table) -> Result<()> {
-    let service_table = Table::from(service_config.clone());
-    let run = Run::new(service_table, &app.system_config_dir);
-    run.create(&app.db)?;
-    Ok(())
-}
-
-pub fn rm_old_files(app: &App, services: Table) -> Result<()> {
-    info("Cleaning up old files")?;
-    let previous_run = Run::get_previous(&app.db)?;
+fn rm_old_files(new_run_files: &[String], prev_run_files: &[String]) -> Result<()> {
+    for filepath in prev_run_files {
+        println!("Old file: {filepath}");
+        if !new_run_files.contains(filepath) {
+            info(format!("Removing orphaned file: {}", filepath))?;
+            fs::remove_file(filepath)?;
+        }
+    }
     Ok(())
 }

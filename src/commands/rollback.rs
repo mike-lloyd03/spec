@@ -14,7 +14,7 @@ pub fn rollback(app: &App, args: &RollbackArgs) -> Result<()> {
             noconfirm: args.noconfirm,
         };
 
-        process_services(app, &run_args, &last_run.data)?;
+        process_services(app, &run_args, &last_run.data, &mut vec![])?;
 
         last_run.delete(&app.db)?;
     } else {

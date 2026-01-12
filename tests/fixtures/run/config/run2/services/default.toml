@@ -1,13 +1,3 @@
-[sshd]
-permit_root_login = "yes"
-authorized_keys_file = [".ssh/authorized_keys"]
-password_authentication = false
-subsystem = ["sftp /usr/lib/ssh/sftp-server"]
-
-[sshd.service]
-enabled = true
-running = true
-
 [systemd]
 [[systemd.unit_files]]
 name = "service1"
@@ -17,6 +7,6 @@ install = { wanted_by = ["multi-user.target.wants"] }
 
 [[systemd.unit_files]]
 name = "service2"
-unit = { description = "Service 3" }
+unit = { description = "Service 2" }
 service = { exec_start = "echo service2" }
 install = { wanted_by = ["multi-user.target.wants", "graphical.wants"] }
