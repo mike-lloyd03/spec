@@ -69,6 +69,7 @@ impl ManagedService for UdevService {
 
         for (filename, content) in config.rules {
             let prefixed_content = "# Managed by spec\n".to_string() + &content;
+
             files.push(FileArtifact {
                 path: sys_config_dir.join(format!("udev/rules.d/{}", filename)),
                 content: prefixed_content,

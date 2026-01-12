@@ -3,6 +3,7 @@ pub mod cli;
 pub mod commands;
 pub mod db;
 pub mod services;
+mod utils;
 
 use color_eyre::Result;
 use rusqlite::Connection;

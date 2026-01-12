@@ -1,6 +1,9 @@
-use cliclack::{confirm, intro, log, note, outro};
+use cliclack::{
+    confirm, intro,
+    log::{self, info},
+    note, outro,
+};
 use color_eyre::{Result, eyre::bail};
-use sha2::{Digest, Sha256};
 use std::{fs, io::Write, os::unix::fs::PermissionsExt};
 use toml::Table;
 
@@ -8,7 +11,8 @@ use crate::{
     App,
     cli::RunArgs,
     db::types::Run,
-    services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
+    services::{self, FileArtifact, ManagedService, ServiceState, get_service_by_name},
+    utils::hash_bytes,
 };
 
 pub fn run(app: &App, args: &RunArgs) -> Result<()> {
@@ -69,15 +73,11 @@ fn apply_service(
 }
 
 fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
-    let mut hasher = Sha256::new();
-    hasher.update(artifact.content.as_bytes());
-    let new_hash = hex::encode(hasher.finalize());
+    let new_hash = hash_bytes(artifact.content.as_bytes());
 
     let current_hash = if artifact.path.exists() {
         let bytes = fs::read(&artifact.path)?;
-        let mut hasher = Sha256::new();
-        hasher.update(bytes);
-        Some(hex::encode(hasher.finalize()))
+        Some(hash_bytes(&bytes))
     } else {
         None
     };
@@ -179,5 +179,11 @@ pub fn save_run(app: &App, service_config: Table) -> Result<()> {
         app.system_config_dir.to_str().unwrap().to_string(),
     );
     run.create(&app.db)?;
+    Ok(())
+}
+
+pub fn rm_old_files(app: &App, services: Table) -> Result<()> {
+    info("Cleaning up old files")?;
+    let previous_run = Run::get_previous(&app.db)?;
     Ok(())
 }
