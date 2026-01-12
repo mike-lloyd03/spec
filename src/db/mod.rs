@@ -6,15 +6,22 @@ use rusqlite_migration::{M, Migrations};
 
 pub mod types;
 
-const MIGRATIONS: &[M<'_>] = &[M::up(
-    r#"
+const MIGRATIONS: &[M<'_>] = &[
+    M::up(
+        r#"
     CREATE TABLE runs (
         id INTEGER PRIMARY KEY,
         data JSON NOT NULL,
         sys_config_dir TEXT NOT NULL
     );
     "#,
-)];
+    ),
+    M::up(
+        r#"
+    ALTER TABLE runs ADD COLUMN managed_files JSON;
+    "#,
+    ),
+];
 
 pub fn connect_db(state_dir: &Path) -> Result<Connection> {
     let db_path = state_dir.join("data.db");

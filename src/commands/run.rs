@@ -11,12 +11,14 @@ use crate::{
     App,
     cli::RunArgs,
     db::types::Run,
-    services::{self, FileArtifact, ManagedService, ServiceState, get_service_by_name},
+    services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
     utils::hash_bytes,
 };
 
 pub fn run(app: &App, args: &RunArgs) -> Result<()> {
     let services = app.load_services()?;
+
+    let new_run = Run::new(services.clone(), &app.system_config_dir);
 
     process_services(app, args, &services)?;
 
@@ -174,10 +176,7 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
 
 pub fn save_run(app: &App, service_config: Table) -> Result<()> {
     let service_table = Table::from(service_config.clone());
-    let run = Run::new(
-        service_table,
-        app.system_config_dir.to_str().unwrap().to_string(),
-    );
+    let run = Run::new(service_table, &app.system_config_dir);
     run.create(&app.db)?;
     Ok(())
 }
