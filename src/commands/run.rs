@@ -11,7 +11,10 @@ use crate::{
     App,
     cli::RunArgs,
     db::types::Run,
-    services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
+    services::{
+        get_service_by_name,
+        types::{FileArtifact, ManagedService, ServiceState},
+    },
     utils::{bytes_to_string, hash_bytes},
 };
 

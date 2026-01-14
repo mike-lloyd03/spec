@@ -3,7 +3,7 @@ use std::{fmt::Display, path::Path};
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-use crate::services::{FileArtifact, ManagedService};
+use crate::services::types::{FileArtifact, ManagedService, ServiceState};
 
 pub struct SystemdService;
 
@@ -136,7 +136,7 @@ impl ManagedService for SystemdService {
         &self,
         config_table: &toml::Table,
         sys_config_dir: &Path,
-    ) -> anyhow::Result<(Vec<super::FileArtifact>, Option<super::ServiceState>)> {
+    ) -> anyhow::Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: SystemdConfig = self.parse_config(config_table)?;
 
         let mut artifacts = vec![];

@@ -65,8 +65,3 @@ pub fn setup_cmd<'a>(
     }
     cmd
 }
-
-pub fn p_to_str(p: &Path) -> &str {
-    let err_msg = format!("Failed to convert Path '{:?}' to string", p);
-    p.to_str().expect(&err_msg)
-}

@@ -1,5 +1,5 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
-use crate::services::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
+use crate::services::types::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};

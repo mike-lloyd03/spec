@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::adapters::key_value::KeyValueAdapter;
-use crate::services::{FileArtifact, ManagedService, ServiceState};
+use crate::services::types::{FileArtifact, ManagedService, ServiceState};
 
 use anyhow::Result;
 use indexmap::IndexMap;

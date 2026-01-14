@@ -7,7 +7,7 @@ use toml::Table;
 use crate::{
     App,
     cli::VerifyArgs,
-    services::{FileArtifact, get_service_by_name},
+    services::{get_service_by_name, types::FileArtifact},
     utils::hash_bytes,
 };
 

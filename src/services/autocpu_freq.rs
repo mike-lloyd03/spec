@@ -4,7 +4,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 
-use crate::services::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
+use crate::services::types::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
 
 pub struct AutoCpuFreqService;
 
