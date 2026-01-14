@@ -1,103 +1,70 @@
 mod common;
 
-use std::fs;
-
+use anyhow::Result;
 use assert_cmd::cargo::cargo_bin_cmd;
-use color_eyre::eyre::Result;
 use tempfile::TempDir;
 
-use crate::common::{assert_files_match, get_fixture_path};
+use crate::common::{TestPaths, assert_files_match, get_fixture_path, setup_cmd};
 
 #[test]
 fn test_rollback() -> Result<()> {
     let testdir = TempDir::new()?;
-    let etc_path = testdir.path().join("etc");
-    let state_path = testdir.path().join("state");
-    let fixture_path = get_fixture_path("rollback");
-    let config_path_run1 = fixture_path.join("config/run1");
-    let config_path_run2 = fixture_path.join("config/run2");
-    let expected_path = fixture_path.join("expected");
+    let fixtures = get_fixture_path("rollback");
+    let expected = fixtures.join("expected");
+    let paths_r1 = TestPaths::new(&testdir, &fixtures.join("config/run1"));
+    let paths_r2 = TestPaths::new(&testdir, &fixtures.join("config/run2"));
 
-    fs::create_dir_all(&state_path)?;
+    let run_cmd = |paths: &TestPaths| {
+        let cmd = &mut cargo_bin_cmd!();
+        let out = setup_cmd(cmd, paths, "run", Some(vec!["--noconfirm"]))
+            .assert()
+            .success()
+            .to_string();
+        println!("{out}");
+    };
 
-    let out = cargo_bin_cmd!()
-        .env("SPEC_CONFIG_DIR", config_path_run1.to_str().unwrap())
-        .env("SPEC_STATE_DIR", state_path.to_str().unwrap())
-        .env("SPEC_SYSTEM_CONFIG_DIR", etc_path.to_str().unwrap())
-        .arg("run")
-        .arg("--noconfirm")
-        .assert()
-        .success()
-        .to_string();
+    let rollback_cmd = || {
+        let cmd = &mut cargo_bin_cmd!();
+        let out = setup_cmd(cmd, &paths_r1, "rollback", Some(vec!["--noconfirm"]))
+            .assert()
+            .success()
+            .to_string();
+        println!("{out}");
+    };
 
-    println!("{out}");
-
-    assert_files_match(
-        &etc_path.join("ssh/sshd_config"),
-        &expected_path.join("sshd_config_run1"),
-    );
-
-    let out = cargo_bin_cmd!()
-        .env("SPEC_CONFIG_DIR", config_path_run2.to_str().unwrap())
-        .env("SPEC_STATE_DIR", state_path.to_str().unwrap())
-        .env("SPEC_SYSTEM_CONFIG_DIR", etc_path.to_str().unwrap())
-        .arg("run")
-        .arg("--noconfirm")
-        .assert()
-        .success()
-        .to_string();
-
-    println!("{out}");
+    run_cmd(&paths_r1);
 
     assert_files_match(
-        &etc_path.join("ssh/sshd_config"),
-        &expected_path.join("sshd_config_run2"),
+        &paths_r1.etc.join("ssh/sshd_config"),
+        &expected.join("sshd_config_run1"),
     );
 
-    let out = cargo_bin_cmd!()
-        .env("SPEC_CONFIG_DIR", config_path_run2.to_str().unwrap())
-        .env("SPEC_STATE_DIR", state_path.to_str().unwrap())
-        .env("SPEC_SYSTEM_CONFIG_DIR", etc_path.to_str().unwrap())
-        .arg("rollback")
-        .arg("--noconfirm")
-        .assert()
-        .success()
-        .to_string();
-
-    println!("{out}");
+    run_cmd(&paths_r2);
 
     assert_files_match(
-        &etc_path.join("ssh/sshd_config"),
-        &expected_path.join("sshd_config_run2"),
+        &paths_r1.etc.join("ssh/sshd_config"),
+        &expected.join("sshd_config_run2"),
     );
 
-    let out = cargo_bin_cmd!()
-        .env("SPEC_CONFIG_DIR", config_path_run2.to_str().unwrap())
-        .env("SPEC_STATE_DIR", state_path.to_str().unwrap())
-        .env("SPEC_SYSTEM_CONFIG_DIR", etc_path.to_str().unwrap())
-        .arg("rollback")
-        .arg("--noconfirm")
-        .assert()
-        .success()
-        .to_string();
-
-    println!("{out}");
+    rollback_cmd();
 
     assert_files_match(
-        &etc_path.join("ssh/sshd_config"),
-        &expected_path.join("sshd_config_run1"),
+        &paths_r1.etc.join("ssh/sshd_config"),
+        &expected.join("sshd_config_run2"),
     );
 
-    let out = cargo_bin_cmd!()
-        .env("SPEC_CONFIG_DIR", config_path_run2.to_str().unwrap())
-        .env("SPEC_STATE_DIR", state_path.to_str().unwrap())
-        .env("SPEC_SYSTEM_CONFIG_DIR", etc_path.to_str().unwrap())
-        .arg("rollback")
-        .arg("--noconfirm")
+    rollback_cmd();
+
+    assert_files_match(
+        &paths_r1.etc.join("ssh/sshd_config"),
+        &expected.join("sshd_config_run1"),
+    );
+
+    let cmd = &mut cargo_bin_cmd!();
+    let out = setup_cmd(cmd, &paths_r1, "rollback", Some(vec!["--noconfirm"]))
         .assert()
         .failure()
         .to_string();
-
     println!("{out}");
 
     Ok(())

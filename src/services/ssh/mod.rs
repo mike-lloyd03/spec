@@ -1,6 +1,6 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
 use crate::services::{FileArtifact, ManagedService, ServiceState};
-use color_eyre::Result;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use toml::Table;

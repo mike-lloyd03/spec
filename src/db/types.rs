@@ -3,7 +3,7 @@ use std::{
     str::FromStr,
 };
 
-use color_eyre::eyre::{Error, Result};
+use anyhow::{Error, Result};
 use rusqlite::{Connection, Error::InvalidColumnType, Row, types::Type::Text};
 use toml::Table;
 
@@ -22,7 +22,7 @@ struct RunDB {
 }
 
 impl TryFrom<&Run> for RunDB {
-    type Error = color_eyre::eyre::Error;
+    type Error = anyhow::Error;
 
     fn try_from(value: &Run) -> Result<RunDB> {
         let data_value: toml::Value = value.data.clone().into();

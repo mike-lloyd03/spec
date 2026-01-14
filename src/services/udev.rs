@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::adapters::key_value::KeyValueAdapter;
 use crate::services::{FileArtifact, ManagedService, ServiceState};
 
-use color_eyre::Result;
+use anyhow::Result;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use toml::Table;

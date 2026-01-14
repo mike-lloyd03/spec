@@ -1,4 +1,4 @@
-use color_eyre::eyre::{Result, bail};
+use anyhow::{Result, bail};
 
 use crate::{
     App,

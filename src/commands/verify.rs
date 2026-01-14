@@ -1,5 +1,6 @@
+use anyhow::Result;
 use cliclack::{intro, log::warning, note, outro};
-use color_eyre::{eyre::Result, owo_colors::OwoColorize};
+use colored::Colorize;
 use similar::{ChangeTag, TextDiff};
 use toml::Table;
 

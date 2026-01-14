@@ -136,7 +136,7 @@ impl ManagedService for SystemdService {
         &self,
         config_table: &toml::Table,
         sys_config_dir: &Path,
-    ) -> color_eyre::eyre::Result<(Vec<super::FileArtifact>, Option<super::ServiceState>)> {
+    ) -> anyhow::Result<(Vec<super::FileArtifact>, Option<super::ServiceState>)> {
         let config: SystemdConfig = self.parse_config(config_table)?;
 
         let mut artifacts = vec![];

@@ -1,9 +1,9 @@
+use anyhow::{Result, bail};
 use cliclack::{
     confirm, intro,
-    log::{self, info, warning},
+    log::{self, error, info, warning},
     note, outro,
 };
-use color_eyre::{Result, eyre::bail};
 use std::{fs, io::Write, os::unix::fs::PermissionsExt};
 use toml::Table;
 
@@ -12,7 +12,7 @@ use crate::{
     cli::RunArgs,
     db::types::Run,
     services::{FileArtifact, ManagedService, ServiceState, get_service_by_name},
-    utils::hash_bytes,
+    utils::{bytes_to_string, hash_bytes},
 };
 
 pub fn run(app: &App, args: &RunArgs) -> Result<()> {
@@ -89,7 +89,7 @@ fn apply_service(
     }
 
     if let Some(state) = service_state {
-        apply_systemd(state, needs_reload, args)?;
+        apply_systemd(app, state, needs_reload, args)?;
     }
 
     Ok(())
@@ -180,11 +180,22 @@ fn check_and_fix_permissions(artifact: &FileArtifact, args: &RunArgs) -> Result<
     Ok(false)
 }
 
-fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Result<()> {
+fn apply_systemd(app: &App, state: ServiceState, needs_reload: bool, args: &RunArgs) -> Result<()> {
     if needs_reload {
         log::step(format!("Reload service: {}", state.name))?;
+
         if !args.dry_run {
-            // std::process::Command::new("systemctl").arg("reload")...
+            let output = std::process::Command::new(&app.systemctl_cmd)
+                .arg("reload")
+                .output()?;
+
+            if !output.status.success() {
+                error(format!(
+                    "Error reloading service: {} {}",
+                    bytes_to_string(&output.stdout)?,
+                    bytes_to_string(&output.stderr)?
+                ))?;
+            }
         }
     }
 

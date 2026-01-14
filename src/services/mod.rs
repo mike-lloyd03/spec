@@ -1,4 +1,4 @@
-use color_eyre::{Result, eyre::Context};
+use anyhow::{Context, Result};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};

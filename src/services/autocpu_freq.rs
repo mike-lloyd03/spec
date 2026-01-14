@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use color_eyre::Result;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 

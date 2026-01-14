@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use color_eyre::eyre::Result;
+use anyhow::Result;
 use rusqlite::Connection;
 use rusqlite_migration::{M, Migrations};
 

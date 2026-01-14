@@ -1,7 +1,7 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
 use crate::services::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
 
-use color_eyre::Result;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 mod enums;

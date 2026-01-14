@@ -1,4 +1,4 @@
-use color_eyre::Result;
+use anyhow::Result;
 
 pub fn unmanaged() -> Result<()> {
     todo!()
