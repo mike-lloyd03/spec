@@ -1,10 +1,11 @@
-use std::path::Path;
-
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 
-use crate::services::types::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
+use crate::types::{
+    managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState},
+    paths::Paths,
+};
 
 pub struct AutoCpuFreqService;
 
@@ -22,20 +23,16 @@ impl ManagedService for AutoCpuFreqService {
     fn plan(
         &self,
         config_table: &Table,
-        _: &Path,
+        _: &Paths,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: AutoCpuFreqConfig = self.parse_config(config_table)?;
 
-        let service_state = if let Some(state) = config.service {
-            ServiceState {
-                name: self.name().to_string(),
-                enabled: state.enabled.unwrap_or_default(),
-                running: state.running.unwrap_or_default(),
-            }
-        } else {
-            ServiceState::default()
-        };
+        let service_state = config.service.map(|state| ServiceState {
+            name: self.name().to_string(),
+            enabled: state.enabled.unwrap_or_default(),
+            running: state.running.unwrap_or_default(),
+        });
 
-        Ok((vec![], Some(service_state)))
+        Ok((vec![], service_state))
     }
 }

@@ -5,6 +5,7 @@ use toml::Value;
 pub enum BoolStyle {
     TrueFalse,
     YesNo,
+    OneZero,
 }
 
 pub struct KeyValueAdapter {
@@ -93,6 +94,7 @@ impl KeyValueAdapter {
         match self.bool_style {
             BoolStyle::TrueFalse => val.to_string(),
             BoolStyle::YesNo => if val { "yes" } else { "no" }.to_string(),
+            BoolStyle::OneZero => if val { "1" } else { "0" }.to_string(),
         }
     }
 
