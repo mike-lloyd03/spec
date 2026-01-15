@@ -1,7 +1,7 @@
-[udev]
+[system.udev]
 exec_delay = 15
 resolve_names = "late"
 
-[udev.rules]
+[system.udev.rules]
 "50-allow-hidraw-keyboard.rules" = '''KERNEL=="hidraw*", ATTRS{idVendor}=="cb10", ATTRS{idProduct}=="1556", MODE="0660", GROUP="input", TAG+="uaccess", TAG+="udev-acl"
 # SUBSYSTEM=="hidraw", MODE="0660", GROUP="plugdev", TAG+="uaccess", TAG+="udev-acl"'''

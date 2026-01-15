@@ -13,26 +13,25 @@ use crate::{
     db::types::Run,
     services::{
         get_service_by_name,
-        types::{FileArtifact, ManagedService, ServiceState},
+        types::{FileArtifact, ManagedService, ManagedServices, ServiceState},
     },
     utils::{bytes_to_string, hash_bytes},
 };
 
 pub fn run(app: &App, args: &RunArgs) -> Result<()> {
-    let services = app.load_services()?;
     let previous_run = Run::get_previous(&app.db);
 
     if let Ok(last_run) = &previous_run
-        && services == last_run.data
+        && app.managed_services == last_run.data
     {
         warning("No changes from previous run")?;
         return Ok(());
     }
 
     let mut managed_files = vec![];
-    process_services(app, args, &services, &mut managed_files)?;
+    process_services(app, args, &app.managed_services, &mut managed_files)?;
 
-    let mut new_run = Run::new(services.clone(), &app.system_config_dir);
+    let mut new_run = Run::new(app.managed_services.clone(), &app.system_config_dir);
     new_run.managed_files = managed_files.clone();
     new_run.create(&app.db)?;
 
@@ -46,11 +45,10 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
 pub fn process_services(
     app: &App,
     args: &RunArgs,
-    services: &Table,
+    services: &ManagedServices,
     managed_files: &mut Vec<String>,
 ) -> Result<()> {
-    println!("Running data: {:?}", services);
-    for (key, value) in services {
+    for (key, value) in &services.system {
         if let Some(table) = value.as_table() {
             if let Some(service) = get_service_by_name(key) {
                 intro(format!("Service: {}", key))?;

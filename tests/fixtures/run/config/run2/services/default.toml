@@ -1,11 +1,11 @@
-[systemd]
-[[systemd.unit_files]]
+[system.systemd]
+[[system.systemd.unit_files]]
 name = "service1"
 unit = { description = "Service 1" }
 service = { exec_start = "echo service1", type = "Oneshot", environment = { TERM = "xterm", VAR1 = "dog" } }
 install = { wanted_by = ["multi-user.target.wants"] }
 
-[[systemd.unit_files]]
+[[system.systemd.unit_files]]
 name = "service2"
 unit = { description = "Service 2" }
 service = { exec_start = "echo service2" }

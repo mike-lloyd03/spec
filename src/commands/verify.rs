@@ -2,18 +2,19 @@ use anyhow::Result;
 use cliclack::{intro, log::warning, note, outro};
 use colored::Colorize;
 use similar::{ChangeTag, TextDiff};
-use toml::Table;
 
 use crate::{
     App,
     cli::VerifyArgs,
-    services::{get_service_by_name, types::FileArtifact},
+    services::{
+        get_service_by_name,
+        types::{FileArtifact, ManagedServices},
+    },
     utils::hash_bytes,
 };
 
 pub fn verify(app: &App, _args: &VerifyArgs) -> Result<()> {
-    let services = app.load_services()?;
-    let files = get_all_files(app, services)?;
+    let files = get_all_files(app, &app.managed_services)?;
 
     intro("Checking system for modified configuration files")?;
     compare_files(files)?;
@@ -22,12 +23,12 @@ pub fn verify(app: &App, _args: &VerifyArgs) -> Result<()> {
     Ok(())
 }
 
-fn get_all_files(app: &App, services: Table) -> Result<Vec<FileArtifact>> {
+fn get_all_files(app: &App, services: &ManagedServices) -> Result<Vec<FileArtifact>> {
     let mut all_files = vec![];
 
-    for (key, value) in services {
+    for (key, value) in &services.system {
         if let Some(service_table) = value.as_table()
-            && let Some(s) = get_service_by_name(&key)
+            && let Some(s) = get_service_by_name(key)
         {
             let (files, _) = s.plan(service_table, &app.system_config_dir)?;
             files.into_iter().for_each(|f| all_files.push(f));

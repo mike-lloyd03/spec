@@ -5,12 +5,10 @@ pub mod db;
 pub mod services;
 mod utils;
 
+use crate::{db::connect_db, services::types::ManagedServices};
 use anyhow::Result;
 use rusqlite::Connection;
 use std::{env, fs, path::PathBuf, str::FromStr};
-use toml::Table;
-
-use crate::db::connect_db;
 
 pub struct App {
     pub db: Connection,
@@ -18,6 +16,7 @@ pub struct App {
     pub state_dir: PathBuf,
     pub system_config_dir: PathBuf,
     pub systemctl_cmd: String,
+    pub managed_services: ManagedServices,
 }
 
 impl App {
@@ -36,39 +35,16 @@ impl App {
 
         let db = connect_db(&state_dir)?;
 
+        let managed_services = ManagedServices::load(&config_dir)?;
+
         Ok(Self {
             db,
             config_dir,
             state_dir,
             system_config_dir,
             systemctl_cmd,
+            managed_services,
         })
-    }
-
-    pub fn load_services(&self) -> Result<Table> {
-        let mut merged = Table::new();
-
-        let services_dir = self.config_dir.join("services");
-        if services_dir.exists() {
-            for entry in fs::read_dir(services_dir)? {
-                let path = entry?.path();
-
-                if path.extension().and_then(|s| s.to_str()) == Some("toml") {
-                    let content = fs::read_to_string(&path)?;
-                    let table: Table = toml::from_str(&content)?;
-
-                    merge_tables(&mut merged, table);
-                }
-            }
-        }
-
-        Ok(merged)
-    }
-}
-
-fn merge_tables(base: &mut Table, incoming: Table) {
-    for (key, value) in incoming {
-        base.insert(key, value);
     }
 }
 

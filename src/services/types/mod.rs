@@ -4,6 +4,9 @@ use serde::de::DeserializeOwned;
 use std::path::{Path, PathBuf};
 use toml::Table;
 
+mod services_config;
+pub use services_config::*;
+
 pub struct FileArtifact {
     pub path: PathBuf,
     pub content: String,
