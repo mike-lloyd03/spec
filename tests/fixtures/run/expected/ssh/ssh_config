@@ -1,0 +1,10 @@
+# Managed by spec
+Host host1
+    Hostname 192.168.1.100
+    IdentityFile ~/.ssh/id_rsa
+    User user1
+
+Host host2
+    Hostname 192.168.1.101
+    IdentityFile ~/.ssh/custom_key
+    User user2

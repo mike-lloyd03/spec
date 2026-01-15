@@ -1,3 +1,14 @@
+[system.ssh]
+[system.ssh.host1]
+hostname = "192.168.1.100"
+user = "user1"
+identity_file = "~/.ssh/id_rsa"
+
+[system.ssh.host2]
+hostname = "192.168.1.101"
+user = "user2"
+identity_file = "~/.ssh/custom_key"
+
 [system.sshd]
 permit_root_login = "yes"
 authorized_keys_file = [".ssh/authorized_keys"]

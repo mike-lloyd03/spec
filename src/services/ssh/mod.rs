@@ -1,6 +1,7 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
 use crate::services::types::{FileArtifact, ManagedService, ServiceState};
 use anyhow::Result;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use toml::Table;
@@ -10,9 +11,11 @@ use enums::*;
 
 pub struct SshService;
 
+type SshConfig = IndexMap<String, HostConfig>;
+
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all(serialize = "PascalCase"))]
-struct SshConfig {
+struct HostConfig {
     pub host: Option<String>,
     pub add_keys_to_agent: Option<AddKeysToAgent>,
     pub address_family: Option<AddressFamily>,
@@ -134,7 +137,14 @@ impl ManagedService for SshService {
 
         adapter.comment("Managed by spec");
 
-        adapter.parse_struct(&config)?;
+        for (k, v) in config {
+            adapter
+                .set("Host", k)
+                .indent()
+                .parse_struct(&v)?
+                .outdent()
+                .empty_line();
+        }
 
         let file = FileArtifact {
             path: sys_config_dir.join("ssh/ssh_config"),
