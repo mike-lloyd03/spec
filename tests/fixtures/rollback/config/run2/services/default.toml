@@ -1,4 +1,4 @@
-[system.sshd]
+[sshd]
 permit_root_login = "no"
 password_authentication = true
 subsystem = ["sftp /usr/lib/ssh/sftp-server"]

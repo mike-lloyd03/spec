@@ -1,6 +1,5 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
 use crate::types::managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
-use crate::types::managed_services_config::ConfigScope;
 use crate::types::paths::Paths;
 
 use anyhow::Result;
@@ -67,12 +66,6 @@ struct SshdConfig {
     pub log_level: Option<LogLevel>,
     pub log_verbose: Option<Vec<String>>,
     pub macs: Option<String>,
-
-    // "Match" is a conditional block.
-    // Usually handled via a custom serializer or separate structs.
-    #[serde(rename = "Match")]
-    pub match_blocks: Option<Vec<String>>,
-
     pub max_auth_tries: Option<u32>,
     pub max_sessions: Option<u32>,
     pub max_startups: Option<String>,
@@ -135,7 +128,6 @@ impl ManagedService for SshdService {
     fn plan(
         &self,
         config_table: &Table,
-        _: ConfigScope,
         paths: &Paths,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: SshdConfig = self.parse_config(config_table)?;

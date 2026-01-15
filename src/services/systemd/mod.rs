@@ -5,7 +5,6 @@ use serde::Deserialize;
 
 use crate::types::{
     managed_service::{FileArtifact, ManagedService, ServiceState},
-    managed_services_config::ConfigScope,
     paths::Paths,
 };
 
@@ -139,7 +138,6 @@ impl ManagedService for SystemdService {
     fn plan(
         &self,
         config_table: &toml::Table,
-        _: ConfigScope,
         paths: &Paths,
     ) -> anyhow::Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: SystemdConfig = self.parse_config(config_table)?;

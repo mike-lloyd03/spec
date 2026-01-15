@@ -1,8 +1,5 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
-use crate::types::managed_service::{
-    FileArtifact, ManagedService, ManagedServiceCapability, ServiceState,
-};
-use crate::types::managed_services_config::ConfigScope;
+use crate::types::managed_service::{FileArtifact, ManagedService, ServiceState};
 use crate::types::paths::Paths;
 
 use anyhow::Result;
@@ -12,8 +9,10 @@ use toml::Table;
 
 mod enums;
 use enums::*;
-
-pub struct SshService;
+mod ssh_system;
+mod ssh_user;
+pub use ssh_system::SshSystemService;
+pub use ssh_user::SshUserService;
 
 type SshConfig = IndexMap<String, HostConfig>;
 
@@ -125,55 +124,46 @@ struct HostConfig {
     pub xauth_location: Option<String>,
 }
 
-impl ManagedService for SshService {
-    fn name(&self) -> &str {
-        "ssh"
+fn plan(
+    service: &impl ManagedService,
+    config_table: &Table,
+    paths: &Paths,
+) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    let config: SshConfig = service.parse_config(config_table)?;
+
+    let mut adapter = KeyValueAdapter::new(" ", "#").bool_style(BoolStyle::YesNo);
+
+    adapter.comment("Managed by spec");
+
+    let path = match service.name() {
+        "ssh_system" => paths.system_config.join("ssh/ssh_config"),
+        "ssh_user" => paths.user_home.join(".ssh/config"),
+        _ => todo!(),
+    };
+
+    for (k, v) in config {
+        adapter
+            .set("Host", k)
+            .indent()
+            .parse_struct(&v)?
+            .outdent()
+            .empty_line();
     }
 
-    fn capabilities(&self) -> ManagedServiceCapability {
-        ManagedServiceCapability::UserAndSystem
-    }
+    let file = FileArtifact {
+        path,
+        content: adapter.build(),
+        permissions: 0o644,
+    };
 
-    fn plan(
-        &self,
-        config_table: &Table,
-        config_scope: ConfigScope,
-        paths: &Paths,
-    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
-        let config: SshConfig = self.parse_config(config_table)?;
-
-        let mut adapter = KeyValueAdapter::new(" ", "#").bool_style(BoolStyle::YesNo);
-
-        adapter.comment("Managed by spec");
-
-        let path = match config_scope {
-            ConfigScope::User => paths.user_config.join("ssh/config"),
-            ConfigScope::System => paths.system_config.join("ssh/ssh_config"),
-        };
-
-        for (k, v) in config {
-            adapter
-                .set("Host", k)
-                .indent()
-                .parse_struct(&v)?
-                .outdent()
-                .empty_line();
-        }
-
-        let file = FileArtifact {
-            path,
-            content: adapter.build(),
-            permissions: 0o644,
-        };
-
-        Ok((vec![file], None))
-    }
+    Ok((vec![file], None))
 }
 
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
 
+    use super::ssh_system::SshSystemService;
     use super::*;
 
     #[test]
@@ -192,10 +182,10 @@ identity_file = "~/.ssh/custom_key"
         "#,
         )?;
 
-        let ssh_service = SshService;
+        let ssh_service = SshSystemService;
         let paths = Paths::default();
 
-        let (files, _) = ssh_service.plan(&config_table, ConfigScope::System, &paths)?;
+        let (files, _) = ssh_service.plan(&config_table, &paths)?;
 
         assert_eq!(files.len(), 1);
 

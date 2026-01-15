@@ -19,7 +19,7 @@ impl App {
 
         let systemctl_cmd = string_from_env_or_default("SPEC_SYSTEMCTL_CMD", "systemctl")?;
 
-        let db = connect_db(&paths.user_state)?;
+        let db = connect_db(&paths.spec_state)?;
 
         let managed_services = ManagedServicesConfig::load(&paths.spec_config)?;
 

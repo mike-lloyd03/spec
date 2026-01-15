@@ -1,6 +1,5 @@
 use crate::adapters::key_value::KeyValueAdapter;
 use crate::types::managed_service::{FileArtifact, ManagedService, ServiceState};
-use crate::types::managed_services_config::ConfigScope;
 use crate::types::paths::Paths;
 
 use anyhow::Result;
@@ -49,7 +48,6 @@ impl ManagedService for UdevService {
     fn plan(
         &self,
         config: &Table,
-        _: ConfigScope,
         paths: &Paths,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: UdevConfig = self.parse_config(config)?;

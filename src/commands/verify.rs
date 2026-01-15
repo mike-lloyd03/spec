@@ -6,10 +6,8 @@ use similar::{ChangeTag, TextDiff};
 use crate::{
     services::get_service_by_name,
     types::{
-        app::App,
-        cli::VerifyArgs,
-        managed_service::FileArtifact,
-        managed_services_config::{ConfigScope, ManagedServicesConfig},
+        app::App, cli::VerifyArgs, managed_service::FileArtifact,
+        managed_services_config::ManagedServicesConfig,
     },
     utils::hash_bytes,
 };
@@ -27,11 +25,11 @@ pub fn verify(app: &App, _args: &VerifyArgs) -> Result<()> {
 fn get_all_files(app: &App, services: &ManagedServicesConfig) -> Result<Vec<FileArtifact>> {
     let mut all_files = vec![];
 
-    for (key, value) in &services.system {
+    for (key, value) in &services.data {
         if let Some(service_table) = value.as_table()
             && let Some(s) = get_service_by_name(key)
         {
-            let (files, _) = s.plan(service_table, ConfigScope::System, &app.paths)?;
+            let (files, _) = s.plan(service_table, &app.paths)?;
             files.into_iter().for_each(|f| all_files.push(f));
         }
     }

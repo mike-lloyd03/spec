@@ -1,4 +1,4 @@
-[system.sshd]
+[sshd]
 permit_root_login = "yes"
 authorized_keys_file = [".ssh/authorized_keys"]
 password_authentication = false
