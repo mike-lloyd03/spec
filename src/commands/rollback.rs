@@ -1,10 +1,10 @@
 use anyhow::{Result, bail};
 
 use crate::{
-    App,
-    cli::{RollbackArgs, RunArgs},
     commands::run::process_services,
-    db::types::Run,
+    types::app::App,
+    types::cli::{RollbackArgs, RunArgs},
+    types::run::Run,
 };
 
 pub fn rollback(app: &App, args: &RollbackArgs) -> Result<()> {

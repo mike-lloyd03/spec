@@ -4,8 +4,6 @@ use anyhow::Result;
 use rusqlite::Connection;
 use rusqlite_migration::{M, Migrations};
 
-pub mod types;
-
 const MIGRATIONS: &[M<'_>] = &[
     M::up(
         r#"

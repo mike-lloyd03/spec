@@ -8,12 +8,13 @@ use std::{fs, io::Write, os::unix::fs::PermissionsExt};
 use toml::Table;
 
 use crate::{
-    App,
-    cli::RunArgs,
-    db::types::Run,
-    services::{
-        get_service_by_name,
-        types::{FileArtifact, ManagedService, ManagedServices, ServiceState},
+    services::get_service_by_name,
+    types::run::Run,
+    types::{
+        app::App,
+        cli::RunArgs,
+        managed_service::{FileArtifact, ManagedService, ServiceState},
+        managed_services_config::{ConfigScope, ManagedServicesConfig},
     },
     utils::{bytes_to_string, hash_bytes},
 };
@@ -31,7 +32,7 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
     let mut managed_files = vec![];
     process_services(app, args, &app.managed_services, &mut managed_files)?;
 
-    let mut new_run = Run::new(app.managed_services.clone(), &app.system_config_dir);
+    let mut new_run = Run::new(app.managed_services.clone(), &app.paths.system_config);
     new_run.managed_files = managed_files.clone();
     new_run.create(&app.db)?;
 
@@ -45,14 +46,21 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
 pub fn process_services(
     app: &App,
     args: &RunArgs,
-    services: &ManagedServices,
+    services: &ManagedServicesConfig,
     managed_files: &mut Vec<String>,
 ) -> Result<()> {
     for (key, value) in &services.system {
         if let Some(table) = value.as_table() {
             if let Some(service) = get_service_by_name(key) {
                 intro(format!("Service: {}", key))?;
-                apply_service(app, service, table, args, managed_files)?;
+                apply_service(
+                    app,
+                    service,
+                    table,
+                    ConfigScope::System,
+                    args,
+                    managed_files,
+                )?;
                 outro("\n")?;
             } else {
                 log::error(format!("Unknown service section: {}", key))?;
@@ -67,10 +75,11 @@ fn apply_service(
     app: &App,
     service: Box<dyn ManagedService>,
     config: &Table,
+    config_scope: ConfigScope,
     args: &RunArgs,
     managed_files: &mut Vec<String>,
 ) -> Result<()> {
-    let (files, service_state) = service.plan(config, &app.system_config_dir)?;
+    let (files, service_state) = service.plan(config, config_scope, &app.paths)?;
     let mut needs_reload = false;
 
     for file in files {

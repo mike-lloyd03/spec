@@ -1,8 +1,12 @@
 use anyhow::Result;
 use clap::Parser;
-use spec::{App, cli, commands};
-
-use spec::cli::Cli;
+use spec::{
+    commands,
+    types::{
+        app::App,
+        cli::{self, Cli},
+    },
+};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();

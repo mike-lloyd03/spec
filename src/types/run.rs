@@ -6,11 +6,11 @@ use std::{
 use anyhow::{Error, Result};
 use rusqlite::{Connection, Error::InvalidColumnType, Row, types::Type::Text};
 
-use crate::services::types::ManagedServices;
+use crate::types::managed_services_config::ManagedServicesConfig;
 
 pub struct Run {
     pub id: u32,
-    pub data: ManagedServices,
+    pub data: ManagedServicesConfig,
     pub sys_config_dir: PathBuf,
     pub managed_files: Vec<String>,
 }
@@ -47,7 +47,7 @@ impl TryFrom<&Run> for RunDB {
 }
 
 impl Run {
-    pub fn new(data: ManagedServices, sys_config_dir: &Path) -> Self {
+    pub fn new(data: ManagedServicesConfig, sys_config_dir: &Path) -> Self {
         Self {
             id: 0,
             data,
@@ -101,7 +101,7 @@ impl<'a> TryFrom<&Row<'a>> for Run {
 
     fn try_from(row: &Row) -> Result<Self, Self::Error> {
         let data_str: String = row.get("data")?;
-        let data: ManagedServices = serde_json::from_str(&data_str)
+        let data: ManagedServicesConfig = serde_json::from_str(&data_str)
             .map_err(|e| InvalidColumnType(1, e.to_string(), Text))?;
 
         let sys_config_dir_str: String = row.get("sys_config_dir")?;

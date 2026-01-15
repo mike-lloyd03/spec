@@ -1,9 +1,13 @@
-use std::{fmt::Display, path::Path};
+use std::fmt::Display;
 
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-use crate::services::types::{FileArtifact, ManagedService, ServiceState};
+use crate::types::{
+    managed_service::{FileArtifact, ManagedService, ServiceState},
+    managed_services_config::ConfigScope,
+    paths::Paths,
+};
 
 pub struct SystemdService;
 
@@ -135,7 +139,8 @@ impl ManagedService for SystemdService {
     fn plan(
         &self,
         config_table: &toml::Table,
-        sys_config_dir: &Path,
+        _: ConfigScope,
+        paths: &Paths,
     ) -> anyhow::Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: SystemdConfig = self.parse_config(config_table)?;
 
@@ -144,7 +149,8 @@ impl ManagedService for SystemdService {
         if let Some(units) = config.unit_files {
             for unit in units {
                 artifacts.push(FileArtifact {
-                    path: sys_config_dir
+                    path: paths
+                        .system_config
                         .join("systemd/system/multi-user.target.wants")
                         .join(format!("{}.service", unit.name)),
                     content: unit.render(),

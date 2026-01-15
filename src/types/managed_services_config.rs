@@ -5,8 +5,14 @@ use cliclack::log;
 use serde::{Deserialize, Serialize};
 use toml::{Table, Value};
 
+#[derive(PartialEq)]
+pub enum ConfigScope {
+    User,
+    System,
+}
+
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
-pub struct ManagedServices {
+pub struct ManagedServicesConfig {
     #[serde(default)]
     pub user: Table,
 
@@ -14,7 +20,7 @@ pub struct ManagedServices {
     pub system: Table,
 }
 
-impl ManagedServices {
+impl ManagedServicesConfig {
     pub fn load(config_dir: &Path) -> Result<Self> {
         let mut merged = Table::new();
 
@@ -35,7 +41,7 @@ impl ManagedServices {
             log::warning("Services configuration directory not found")?;
         }
 
-        let config: ManagedServices = merged.try_into()?;
+        let config: ManagedServicesConfig = merged.try_into()?;
 
         Ok(config)
     }

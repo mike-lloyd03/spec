@@ -1,9 +1,13 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
-use crate::services::types::{FileArtifact, ManagedService, ServiceState};
+use crate::types::managed_service::{
+    FileArtifact, ManagedService, ManagedServiceCapability, ServiceState,
+};
+use crate::types::managed_services_config::ConfigScope;
+use crate::types::paths::Paths;
+
 use anyhow::Result;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use toml::Table;
 
 mod enums;
@@ -126,16 +130,26 @@ impl ManagedService for SshService {
         "ssh"
     }
 
+    fn capabilities(&self) -> ManagedServiceCapability {
+        ManagedServiceCapability::UserAndSystem
+    }
+
     fn plan(
         &self,
         config_table: &Table,
-        sys_config_dir: &Path,
+        config_scope: ConfigScope,
+        paths: &Paths,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: SshConfig = self.parse_config(config_table)?;
 
         let mut adapter = KeyValueAdapter::new(" ", "#").bool_style(BoolStyle::YesNo);
 
         adapter.comment("Managed by spec");
+
+        let path = match config_scope {
+            ConfigScope::User => paths.user_config.join("ssh/config"),
+            ConfigScope::System => paths.system_config.join("ssh/ssh_config"),
+        };
 
         for (k, v) in config {
             adapter
@@ -147,7 +161,7 @@ impl ManagedService for SshService {
         }
 
         let file = FileArtifact {
-            path: sys_config_dir.join("ssh/ssh_config"),
+            path,
             content: adapter.build(),
             permissions: 0o644,
         };
@@ -158,7 +172,7 @@ impl ManagedService for SshService {
 
 #[cfg(test)]
 mod tests {
-    use std::{path::PathBuf, str::FromStr};
+    use std::str::FromStr;
 
     use super::*;
 
@@ -179,16 +193,16 @@ identity_file = "~/.ssh/custom_key"
         )?;
 
         let ssh_service = SshService;
+        let paths = Paths::default();
 
-        let sys_config_dir = Path::new("/etc");
-        let (files, _) = ssh_service.plan(&config_table, sys_config_dir)?;
+        let (files, _) = ssh_service.plan(&config_table, ConfigScope::System, &paths)?;
 
         assert_eq!(files.len(), 1);
 
         if let Some(file) = files.first() {
             assert_eq!(
                 file.path.to_string_lossy().to_string(),
-                "/etc/ssh/ssh_config".to_string()
+                "ssh/ssh_config".to_string()
             );
 
             let expected_content = r#"# Managed by spec

@@ -1,3 +1,5 @@
+use std::{env, path::PathBuf, str::FromStr};
+
 use anyhow::Result;
 use sha2::{Digest, Sha256};
 
@@ -9,4 +11,20 @@ pub fn hash_bytes(bytes: &[u8]) -> String {
 
 pub fn bytes_to_string(bytes: &[u8]) -> Result<String> {
     Ok(str::from_utf8(bytes)?.to_string())
+}
+
+pub fn dir_from_env_or_default(var_name: &str, default: PathBuf) -> Result<PathBuf> {
+    Ok(if let Ok(dir) = env::var(var_name) {
+        PathBuf::from_str(&dir)?
+    } else {
+        default
+    })
+}
+
+pub fn string_from_env_or_default(var_name: &str, default: &str) -> Result<String> {
+    Ok(if let Ok(s) = env::var(var_name) {
+        s
+    } else {
+        default.to_string()
+    })
 }

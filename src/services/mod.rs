@@ -1,19 +1,18 @@
-use crate::services::autocpu_freq::AutoCpuFreqService;
-use crate::services::ssh::SshService;
+// use crate::services::autocpu_freq::AutoCpuFreqService;
 use crate::services::sshd::SshdService;
 use crate::services::systemd::SystemdService;
 use crate::services::udev::UdevService;
+use crate::{services::ssh::SshService, types::managed_service::ManagedService};
 
-mod autocpu_freq;
+// mod autocpu_freq;
 mod ssh;
 mod sshd;
 mod systemd;
-pub mod types;
 mod udev;
 
-pub fn get_service_by_name(name: &str) -> Option<Box<dyn types::ManagedService>> {
+pub fn get_service_by_name(name: &str) -> Option<Box<dyn ManagedService>> {
     match name {
-        "auto-cpufreq" => Some(Box::new(AutoCpuFreqService)),
+        // "auto-cpufreq" => Some(Box::new(AutoCpuFreqService)),
         "ssh" => Some(Box::new(SshService)),
         "sshd" => Some(Box::new(SshdService)),
         "systemd" => Some(Box::new(SystemdService)),
