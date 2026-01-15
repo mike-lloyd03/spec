@@ -155,3 +155,57 @@ impl ManagedService for SshService {
         Ok((vec![file], None))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{path::PathBuf, str::FromStr};
+
+    use super::*;
+
+    #[test]
+    fn test_plan() -> Result<()> {
+        let config_table = Table::from_str(
+            r#"
+[host1]
+hostname = "192.168.1.100"
+user = "user1"
+identity_file = "~/.ssh/id_rsa"
+
+[host2]
+hostname = "192.168.1.101"
+user = "user2"
+identity_file = "~/.ssh/custom_key"
+        "#,
+        )?;
+
+        let ssh_service = SshService;
+
+        let sys_config_dir = Path::new("/etc");
+        let (files, _) = ssh_service.plan(&config_table, sys_config_dir)?;
+
+        assert_eq!(files.len(), 1);
+
+        if let Some(file) = files.first() {
+            assert_eq!(
+                file.path.to_string_lossy().to_string(),
+                "/etc/ssh/ssh_config".to_string()
+            );
+
+            let expected_content = r#"# Managed by spec
+Host host1
+    Hostname 192.168.1.100
+    IdentityFile ~/.ssh/id_rsa
+    User user1
+
+Host host2
+    Hostname 192.168.1.101
+    IdentityFile ~/.ssh/custom_key
+    User user2
+"#;
+
+            assert_eq!(expected_content, file.content);
+        }
+
+        Ok(())
+    }
+}
