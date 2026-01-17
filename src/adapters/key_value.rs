@@ -120,4 +120,8 @@ impl KeyValueAdapter {
     pub fn build(&self) -> String {
         self.lines.join("\n")
     }
+
+    pub fn lines(&self) -> Vec<String> {
+        self.lines.clone()
+    }
 }

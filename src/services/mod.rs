@@ -13,6 +13,7 @@ mod ssh;
 mod sshd;
 mod systemd;
 mod tuned;
+mod tuned_ppd;
 mod udev;
 
 pub fn get_service_by_name(name: &str) -> Option<Box<dyn ManagedService>> {
