@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use toml::Table;
 
 use crate::{
-    adapters::{ini::IniAdapter, parsers::serialize_bool},
+    adapters::ini::IniAdapter,
     types::{
         managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState},
         paths::Paths,
@@ -24,9 +24,7 @@ struct TuneDPPDConfig {
 #[derive(Serialize, Deserialize, Default)]
 struct Main {
     pub default: Option<String>,
-    #[serde(serialize_with = "serialize_bool")]
     pub battery_detection: Option<bool>,
-    #[serde(serialize_with = "serialize_bool")]
     pub sysfs_acpi_monitor: Option<bool>,
 }
 

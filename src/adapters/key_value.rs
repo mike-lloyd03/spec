@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde::Serialize;
-use toml::Value;
+use toml::{Table, Value};
 
 pub enum BoolStyle {
     TrueFalse,
@@ -52,17 +52,12 @@ impl KeyValueAdapter {
     }
 
     pub fn parse_struct<T: Serialize>(&mut self, data: &T) -> Result<&mut Self> {
-        let val = Value::try_from(data)?;
+        let table = Table::try_from(data)?;
 
-        if let Value::Table(map) = val {
-            let mut keys: Vec<&String> = map.keys().collect();
-            keys.sort();
-
-            for key in keys {
-                let toml_val = &map[key];
-                self.process_value(key, toml_val);
-            }
+        for (k, v) in table {
+            self.process_value(&k, &v);
         }
+
         Ok(self)
     }
 
