@@ -1,5 +1,5 @@
 use crate::adapters::key_value::KeyValueAdapter;
-use crate::types::managed_service::{FileArtifact, ManagedService, ServiceState};
+use crate::types::managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
 use crate::types::paths::Paths;
 
 use anyhow::Result;
@@ -20,6 +20,9 @@ struct UdevConfig {
 
     #[serde(skip_serializing)]
     rules: IndexMap<String, String>,
+
+    #[serde(skip_serializing)]
+    pub service: Option<ServiceConfig>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -78,6 +81,13 @@ impl ManagedService for UdevService {
             });
         }
 
-        Ok((files, None))
+        let service_state = config.service.map(|state| ServiceState {
+            name: self.name().to_string(),
+            enabled: state.enabled,
+            running: state.running,
+            reload_cmd: Some("udevadm control --reload".to_string()),
+        });
+
+        Ok((files, service_state))
     }
 }

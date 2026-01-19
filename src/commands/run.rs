@@ -4,7 +4,7 @@ use cliclack::{
     log::{self, error, info, warning},
     note, outro,
 };
-use std::{fs, io::Write, os::unix::fs::PermissionsExt};
+use std::{fs, io::Write, os::unix::fs::PermissionsExt, process::Command};
 use toml::Table;
 
 use crate::{
@@ -187,8 +187,9 @@ fn apply_systemd(app: &App, state: ServiceState, needs_reload: bool, args: &RunA
         log::step(format!("Reload service: {}", state.name))?;
 
         if !args.dry_run {
-            let output = std::process::Command::new(&app.systemctl_cmd)
+            let output = Command::new(&app.systemctl_cmd)
                 .arg("reload")
+                .arg(&state.name)
                 .output()?;
 
             if !output.status.success() {
@@ -198,12 +199,38 @@ fn apply_systemd(app: &App, state: ServiceState, needs_reload: bool, args: &RunA
                     bytes_to_string(&output.stderr)?
                 ))?;
             }
+
+            if let Some(running) = state.running {
+                let cmd = match running {
+                    true => "start",
+                    false => "stop",
+                };
+
+                Command::new(&app.systemctl_cmd)
+                    .arg(cmd)
+                    .arg(&state.name)
+                    .output()?;
+            }
+
+            if let Some(enabled) = state.enabled {
+                let cmd = match enabled {
+                    true => "enable",
+                    false => "disable",
+                };
+
+                Command::new(&app.systemctl_cmd)
+                    .arg(cmd)
+                    .arg(&state.name)
+                    .output()?;
+            }
         }
     }
 
     log::info(format!(
         "[Service] Ensure {} is enabled={} active={}",
-        state.name, state.enabled, state.running
+        state.name,
+        render_system_state(state.enabled),
+        render_system_state(state.running)
     ))?;
     Ok(())
 }
@@ -217,4 +244,13 @@ fn rm_old_files(new_run_files: &[String], prev_run_files: &[String]) -> Result<(
         }
     }
     Ok(())
+}
+
+fn render_system_state(val: Option<bool>) -> String {
+    match val {
+        Some(true) => "true",
+        Some(false) => "false",
+        None => "ignored",
+    }
+    .to_string()
 }

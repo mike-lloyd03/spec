@@ -2,7 +2,7 @@ use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
 use crate::types::managed_service::{FileArtifact, ManagedService, ServiceState};
 use crate::types::paths::Paths;
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use toml::Table;
@@ -138,7 +138,7 @@ fn plan(
     let path = match service.name() {
         "ssh_system" => paths.system_config.join("ssh/ssh_config"),
         "ssh_user" => paths.user_home.join(".ssh/config"),
-        _ => todo!(),
+        _ => bail!("wrong service type for ssh plan"),
     };
 
     for (k, v) in config {

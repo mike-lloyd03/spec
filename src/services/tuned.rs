@@ -50,8 +50,9 @@ impl ManagedService for TuneDService {
 
         let service_state = config.service.map(|state| ServiceState {
             name: self.name().to_string(),
-            enabled: state.enabled.unwrap_or_default(),
-            running: state.running.unwrap_or_default(),
+            enabled: state.enabled,
+            running: state.running,
+            ..Default::default()
         });
 
         Ok((vec![file], service_state))

@@ -14,8 +14,9 @@ pub struct FileArtifact {
 #[derive(Default)]
 pub struct ServiceState {
     pub name: String,
-    pub enabled: bool,
-    pub running: bool,
+    pub enabled: Option<bool>,
+    pub running: Option<bool>,
+    pub reload_cmd: Option<String>,
 }
 
 #[derive(Default, Deserialize)]

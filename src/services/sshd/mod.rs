@@ -147,8 +147,9 @@ impl ManagedService for SshdService {
         let service_state = if let Some(state) = config.service {
             ServiceState {
                 name: self.name().to_string(),
-                enabled: state.enabled.unwrap_or_default(),
-                running: state.running.unwrap_or_default(),
+                enabled: state.enabled,
+                running: state.running,
+                ..Default::default()
             }
         } else {
             ServiceState::default()
