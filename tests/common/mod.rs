@@ -1,5 +1,8 @@
+mod create_shim;
+use create_shim::create_shim;
+
 use std::{
-    fs,
+    env, fs,
     path::{Path, PathBuf},
 };
 
@@ -7,18 +10,41 @@ use assert_cmd::Command;
 use tempfile::TempDir;
 
 pub struct TestPaths {
+    pub root: TempDir,
     pub config: PathBuf,
     pub state: PathBuf,
     pub etc: PathBuf,
+    pub bin: PathBuf,
 }
 
 impl TestPaths {
-    pub fn new(temp_dir: &TempDir, config_dir: &Path) -> Self {
+    pub fn new(config_dir: &Path) -> Self {
+        let root = TempDir::new().expect("failed to create temp dir");
+        let config = config_dir.to_owned();
+        let state = root.path().join("state");
+        let etc = root.path().join("etc");
+        let bin = root.path().join("bin");
+
+        fs::create_dir_all(&config).unwrap();
+        fs::create_dir_all(&state).unwrap();
+        fs::create_dir_all(&etc).unwrap();
+        fs::create_dir_all(&bin).unwrap();
+
         Self {
-            config: config_dir.to_owned(),
-            state: temp_dir.path().join("state"),
-            etc: temp_dir.path().join("etc"),
+            root,
+            config,
+            state,
+            etc,
+            bin,
         }
+    }
+
+    pub fn config_dir(&mut self, dir: &Path) {
+        self.config = dir.to_owned();
+    }
+
+    pub fn get_root(&self) -> PathBuf {
+        self.root.path().to_path_buf()
     }
 }
 
@@ -51,17 +77,24 @@ pub fn setup_cmd<'a>(
     subcommand: &str,
     args: Option<Vec<&str>>,
 ) -> &'a mut Command {
+    let current_path = env::var_os("PATH").unwrap_or_default();
+    let new_path =
+        env::join_paths(std::iter::once(paths.bin.clone()).chain(env::split_paths(&current_path)))
+            .expect("Failed to construct new PATH");
+
+    create_shim(paths, "systemctl");
+    create_shim(paths, "udevadm");
+
     let cmd = cmd
         .env("SPEC_CONFIG_DIR", &paths.config)
         .env("SPEC_STATE_DIR", &paths.state)
         .env("SPEC_SYSTEM_CONFIG_DIR", &paths.etc)
-        .env("SPEC_SYSTEMCTL_CMD", "echo")
+        .env("PATH", new_path)
         .arg(subcommand);
 
     if let Some(a) = args {
-        for arg in a {
-            cmd.arg(arg);
-        }
+        cmd.args(a);
     }
+
     cmd
 }

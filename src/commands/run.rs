@@ -91,7 +91,7 @@ fn apply_service(
     }
 
     if let Some(state) = service_state {
-        apply_systemd(app, state, needs_reload, args)?;
+        apply_systemd(state, needs_reload, args)?;
     }
 
     Ok(())
@@ -182,12 +182,12 @@ fn check_and_fix_permissions(artifact: &FileArtifact, args: &RunArgs) -> Result<
     Ok(false)
 }
 
-fn apply_systemd(app: &App, state: ServiceState, needs_reload: bool, args: &RunArgs) -> Result<()> {
+fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Result<()> {
     if needs_reload {
         log::step(format!("Reload service: {}", state.name))?;
 
         if !args.dry_run {
-            let output = Command::new(&app.systemctl_cmd)
+            let output = Command::new("systemctl")
                 .arg("reload")
                 .arg(&state.name)
                 .output()?;
@@ -206,7 +206,7 @@ fn apply_systemd(app: &App, state: ServiceState, needs_reload: bool, args: &RunA
                     false => "stop",
                 };
 
-                Command::new(&app.systemctl_cmd)
+                Command::new("systemctl")
                     .arg(cmd)
                     .arg(&state.name)
                     .output()?;
@@ -218,7 +218,7 @@ fn apply_systemd(app: &App, state: ServiceState, needs_reload: bool, args: &RunA
                     false => "disable",
                 };
 
-                Command::new(&app.systemctl_cmd)
+                Command::new("systemctl")
                     .arg(cmd)
                     .arg(&state.name)
                     .output()?;

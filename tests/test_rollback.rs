@@ -1,18 +1,16 @@
 mod common;
 
+use crate::common::{TestPaths, assert_files_match, get_fixture_path, setup_cmd};
 use anyhow::Result;
 use assert_cmd::cargo::cargo_bin_cmd;
-use tempfile::TempDir;
-
-use crate::common::{TestPaths, assert_files_match, get_fixture_path, setup_cmd};
 
 #[test]
 fn test_rollback() -> Result<()> {
-    let testdir = TempDir::new()?;
     let fixtures = get_fixture_path("rollback");
     let expected = fixtures.join("expected");
-    let paths_r1 = TestPaths::new(&testdir, &fixtures.join("config/run1"));
-    let paths_r2 = TestPaths::new(&testdir, &fixtures.join("config/run2"));
+    let config_run1 = &fixtures.join("config/run1");
+    let config_run2 = &fixtures.join("config/run2");
+    let mut paths = TestPaths::new(config_run1);
 
     let run_cmd = |paths: &TestPaths| {
         let cmd = &mut cargo_bin_cmd!();
@@ -23,45 +21,47 @@ fn test_rollback() -> Result<()> {
         println!("{out}");
     };
 
-    let rollback_cmd = || {
+    let rollback_cmd = |paths: &TestPaths| {
         let cmd = &mut cargo_bin_cmd!();
-        let out = setup_cmd(cmd, &paths_r1, "rollback", Some(vec!["--noconfirm"]))
+        let out = setup_cmd(cmd, paths, "rollback", Some(vec!["--noconfirm"]))
             .assert()
             .success()
             .to_string();
         println!("{out}");
     };
 
-    run_cmd(&paths_r1);
+    run_cmd(&paths);
 
     assert_files_match(
-        &paths_r1.etc.join("ssh/sshd_config"),
+        &paths.etc.join("ssh/sshd_config"),
         &expected.join("sshd_config_run1"),
     );
 
-    run_cmd(&paths_r2);
+    paths.config_dir(config_run2);
+
+    run_cmd(&paths);
 
     assert_files_match(
-        &paths_r1.etc.join("ssh/sshd_config"),
+        &paths.etc.join("ssh/sshd_config"),
         &expected.join("sshd_config_run2"),
     );
 
-    rollback_cmd();
+    rollback_cmd(&paths);
 
     assert_files_match(
-        &paths_r1.etc.join("ssh/sshd_config"),
+        &paths.etc.join("ssh/sshd_config"),
         &expected.join("sshd_config_run2"),
     );
 
-    rollback_cmd();
+    rollback_cmd(&paths);
 
     assert_files_match(
-        &paths_r1.etc.join("ssh/sshd_config"),
+        &paths.etc.join("ssh/sshd_config"),
         &expected.join("sshd_config_run1"),
     );
 
     let cmd = &mut cargo_bin_cmd!();
-    let out = setup_cmd(cmd, &paths_r1, "rollback", Some(vec!["--noconfirm"]))
+    let out = setup_cmd(cmd, &paths, "rollback", Some(vec!["--noconfirm"]))
         .assert()
         .failure()
         .to_string();
