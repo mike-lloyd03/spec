@@ -4,7 +4,13 @@ use cliclack::{
     log::{self, error, info, warning},
     note, outro,
 };
-use std::{fs, io::Write, os::unix::fs::PermissionsExt, process::Command};
+use privesc::{PrivilegedCommand, PrivilegedOutput};
+use std::{
+    fs,
+    io::Write,
+    os::unix::fs::PermissionsExt,
+    process::{Command, Output},
+};
 use toml::Table;
 
 use crate::{
@@ -187,10 +193,7 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
         log::step(format!("Reload service: {}", state.name))?;
 
         if !args.dry_run {
-            let output = Command::new("systemctl")
-                .arg("reload")
-                .arg(&state.name)
-                .output()?;
+            let output = cmd_from_str(&state.reload_cmd, state.requires_sudo)?;
 
             if !output.status.success() {
                 error(format!(
@@ -199,30 +202,26 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
                     bytes_to_string(&output.stderr)?
                 ))?;
             }
+        }
+    }
 
-            if let Some(running) = state.running {
-                let cmd = match running {
-                    true => "start",
-                    false => "stop",
-                };
+    if !args.dry_run {
+        if let Some(running) = state.running {
+            let cmd = match running {
+                true => state.start_cmd,
+                false => state.stop_cmd,
+            };
 
-                Command::new("systemctl")
-                    .arg(cmd)
-                    .arg(&state.name)
-                    .output()?;
-            }
+            cmd_from_str(&cmd, state.requires_sudo)?;
+        }
 
-            if let Some(enabled) = state.enabled {
-                let cmd = match enabled {
-                    true => "enable",
-                    false => "disable",
-                };
+        if let Some(enabled) = state.enabled {
+            let cmd = match enabled {
+                true => state.enable_cmd,
+                false => state.disable_cmd,
+            };
 
-                Command::new("systemctl")
-                    .arg(cmd)
-                    .arg(&state.name)
-                    .output()?;
-            }
+            cmd_from_str(&cmd, state.requires_sudo)?;
         }
     }
 
@@ -253,4 +252,36 @@ fn render_system_state(val: Option<bool>) -> String {
         None => "ignored",
     }
     .to_string()
+}
+
+// fn cmd_from_str(cmd_str: &str, requires_sudo: bool) -> Result<Output> {
+//     println!("Running: ${cmd_str} with sudo: {requires_sudo}");
+//     Ok(match (cmd_str.split_once(" "), requires_sudo) {
+//         (Some((cmd, args)), true) => {
+//             to_output(PrivilegedCommand::new(cmd).args(args.split(" ")).run()?)
+//         }
+//         (Some((cmd, args)), false) => Command::new(cmd).args(args.split(" ")).output()?,
+//         (None, true) => to_output(PrivilegedCommand::new(cmd_str).run()?),
+//         (None, false) => Command::new(cmd_str).output()?,
+//     })
+// }
+//
+// fn to_output(output: PrivilegedOutput) -> Output {
+//     Output {
+//         status: output.status,
+//         stdout: output.stdout.expect("stdout should be captured"),
+//         stderr: output.stderr.expect("stderr should be captured"),
+//     }
+// }
+fn cmd_from_str(cmd_str: &str, requires_sudo: bool) -> Result<Output> {
+    println!("Running: ${cmd_str} with sudo: {requires_sudo}");
+    Ok(match (cmd_str.split_once(" "), requires_sudo) {
+        (Some((cmd, args)), true) => Command::new("sudo")
+            .arg(cmd)
+            .args(args.split(" "))
+            .output()?,
+        (Some((cmd, args)), false) => Command::new(cmd).args(args.split(" ")).output()?,
+        (None, true) => Command::new("sudo").arg(cmd_str).output()?,
+        (None, false) => Command::new(cmd_str).output()?,
+    })
 }

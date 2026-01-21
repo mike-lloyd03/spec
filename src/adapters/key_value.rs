@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use serde::Serialize;
 use toml::{Table, Value};
 
@@ -53,6 +53,9 @@ impl KeyValueAdapter {
 
     pub fn parse_struct<T: Serialize>(&mut self, data: &T) -> Result<&mut Self> {
         let table = Table::try_from(data)?;
+        if table.is_empty() {
+            bail!("Configuration table is empty")
+        }
 
         for (k, v) in table {
             self.process_value(&k, &v);

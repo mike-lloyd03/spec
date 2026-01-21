@@ -15,10 +15,6 @@ authorized_keys_file = [".ssh/authorized_keys"]
 password_authentication = false
 subsystem = ["sftp /usr/lib/ssh/sftp-server"]
 
-[sshd.service]
-enabled = true
-running = true
-
 [systemd]
 [[systemd.unit_files]]
 name = "service1"

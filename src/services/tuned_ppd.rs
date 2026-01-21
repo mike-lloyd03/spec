@@ -67,12 +67,9 @@ impl ManagedService for TuneDPPDService {
             permissions: 0o644,
         };
 
-        let service_state = config.service.map(|state| ServiceState {
-            name: self.name().to_string(),
-            enabled: state.enabled,
-            running: state.running,
-            ..Default::default()
-        });
+        let service_state = config
+            .service
+            .map(|s| ServiceState::new(self.name(), s.enabled, s.running));
 
         Ok((vec![file], service_state))
     }

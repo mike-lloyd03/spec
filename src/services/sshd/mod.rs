@@ -130,31 +130,25 @@ impl ManagedService for SshdService {
         config_table: &Table,
         paths: &Paths,
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+        let mut files = Vec::new();
         let config: SshdConfig = self.parse_config(config_table)?;
 
         let mut adapter = KeyValueAdapter::new(" ", "#").bool_style(BoolStyle::YesNo);
 
         adapter.comment("Managed by spec");
 
-        adapter.parse_struct(&config)?;
+        if adapter.parse_struct(&config).is_ok() {
+            files.push(FileArtifact {
+                path: paths.system_config.join("ssh/sshd_config"),
+                content: adapter.build(),
+                permissions: 0o644,
+            });
+        }
 
-        let file = FileArtifact {
-            path: paths.system_config.join("ssh/sshd_config"),
-            content: adapter.build(),
-            permissions: 0o644,
-        };
+        let service_state = config
+            .service
+            .map(|s| ServiceState::new(self.name(), s.enabled, s.running));
 
-        let service_state = if let Some(state) = config.service {
-            ServiceState {
-                name: self.name().to_string(),
-                enabled: state.enabled,
-                running: state.running,
-                ..Default::default()
-            }
-        } else {
-            ServiceState::default()
-        };
-
-        Ok((vec![file], Some(service_state)))
+        Ok((files, service_state))
     }
 }

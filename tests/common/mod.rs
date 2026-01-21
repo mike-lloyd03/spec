@@ -82,6 +82,7 @@ pub fn setup_cmd<'a>(
         env::join_paths(std::iter::once(paths.bin.clone()).chain(env::split_paths(&current_path)))
             .expect("Failed to construct new PATH");
 
+    create_shim(paths, "sudo");
     create_shim(paths, "systemctl");
     create_shim(paths, "udevadm");
 

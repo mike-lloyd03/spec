@@ -36,26 +36,25 @@ impl ManagedService for TuneDService {
         paths: &Paths,
     ) -> anyhow::Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: TuneDConfig = self.parse_config(config)?;
+        let mut files = Vec::new();
 
         let mut adapter = KeyValueAdapter::new(" = ", "#").bool_style(BoolStyle::OneZero);
 
         adapter.comment("Managed by spec");
-        adapter.parse_struct(&config)?;
 
-        let file = FileArtifact {
-            path: paths.system_config.join("tuned/tuned-main.conf"),
-            content: adapter.build(),
-            permissions: 0o644,
-        };
+        if adapter.parse_struct(&config).is_ok() {
+            files.push(FileArtifact {
+                path: paths.system_config.join("tuned/tuned-main.conf"),
+                content: adapter.build(),
+                permissions: 0o644,
+            });
+        }
 
-        let service_state = config.service.map(|state| ServiceState {
-            name: self.name().to_string(),
-            enabled: state.enabled,
-            running: state.running,
-            ..Default::default()
-        });
+        let service_state = config
+            .service
+            .map(|s| ServiceState::new(self.name(), s.enabled, s.running));
 
-        Ok((vec![file], service_state))
+        Ok((files, service_state))
     }
 }
 

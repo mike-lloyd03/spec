@@ -1,3 +1,6 @@
-systemctl reload sshd
-systemctl start sshd
-systemctl enable sshd
+sudo systemctl reload sshd
+sudo systemctl start sshd
+sudo systemctl enable sshd
+sudo udevadm control --reload
+sudo systemctl start systemd-udevd
+sudo systemctl enable systemd-udevd

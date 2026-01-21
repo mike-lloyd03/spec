@@ -27,12 +27,9 @@ impl ManagedService for AutoCpuFreqService {
     ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
         let config: AutoCpuFreqConfig = self.parse_config(config_table)?;
 
-        let service_state = config.service.map(|state| ServiceState {
-            name: self.name().to_string(),
-            enabled: state.enabled,
-            running: state.running,
-            ..Default::default()
-        });
+        let service_state = config
+            .service
+            .map(|state| ServiceState::new(self.name(), state.enabled, state.running));
 
         Ok((vec![], service_state))
     }
