@@ -1,16 +1,12 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
-use std::path::PathBuf;
 use toml::Table;
 
+use crate::types::file_artifact::FileArtifact;
 use crate::types::paths::Paths;
-pub struct FileArtifact {
-    pub path: PathBuf,
-    pub content: String,
-    pub permissions: u32,
-}
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct ServiceState {
     pub name: String,
     pub enabled: Option<bool>,
@@ -20,7 +16,7 @@ pub struct ServiceState {
     pub enable_cmd: String,
     pub stop_cmd: String,
     pub disable_cmd: String,
-    pub requires_sudo: bool,
+    pub requires_root: bool,
 }
 
 impl ServiceState {
@@ -34,8 +30,17 @@ impl ServiceState {
             enable_cmd: format!("systemctl enable {name}"),
             stop_cmd: format!("systemctl stop {name}"),
             disable_cmd: format!("systemctl disable {name}"),
-            requires_sudo: true,
+            requires_root: true,
         }
+    }
+
+    pub fn user(mut self) -> Self {
+        self.reload_cmd = format!("systemctl --user reload {}", self.name);
+        self.start_cmd = format!("systemctl --user start {}", self.name);
+        self.enable_cmd = format!("systemctl --user enable {}", self.name);
+        self.stop_cmd = format!("systemctl --user stop {}", self.name);
+        self.disable_cmd = format!("systemctl --user disable {}", self.name);
+        self
     }
 
     pub fn builder(name: &str) -> Self {
@@ -77,26 +82,29 @@ impl ServiceState {
         self
     }
 
-    pub fn requires_sudo(mut self, requires_sudo: bool) -> Self {
-        self.requires_sudo = requires_sudo;
+    pub fn requires_root(mut self, requires_sudo: bool) -> Self {
+        self.requires_root = requires_sudo;
         self
     }
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct ServiceConfig {
     pub enabled: Option<bool>,
     pub running: Option<bool>,
 }
 
+#[derive(Default)]
+pub struct Plan {
+    pub files: Vec<FileArtifact>,
+    pub service_state: Option<ServiceState>,
+    pub addl_service_states: Option<Vec<ServiceState>>,
+}
+
 pub trait ManagedService {
     fn name(&self) -> &str;
 
-    fn plan(
-        &self,
-        config: &Table,
-        paths: &Paths,
-    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)>;
+    fn plan(&self, config: &Table, paths: &Paths) -> Result<Plan>;
 
     fn parse_config<T: DeserializeOwned>(&self, config: &Table) -> Result<T>
     where

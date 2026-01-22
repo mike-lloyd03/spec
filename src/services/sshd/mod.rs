@@ -1,5 +1,6 @@
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
-use crate::types::managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
+use crate::types::file_artifact::FileArtifact;
+use crate::types::managed_service::{ManagedService, Plan, ServiceConfig, ServiceState};
 use crate::types::paths::Paths;
 
 use anyhow::Result;
@@ -125,11 +126,7 @@ impl ManagedService for SshdService {
         "sshd"
     }
 
-    fn plan(
-        &self,
-        config_table: &Table,
-        paths: &Paths,
-    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    fn plan(&self, config_table: &Table, paths: &Paths) -> Result<Plan> {
         let mut files = Vec::new();
         let config: SshdConfig = self.parse_config(config_table)?;
 
@@ -142,6 +139,7 @@ impl ManagedService for SshdService {
                 path: paths.system_config.join("ssh/sshd_config"),
                 content: adapter.build(),
                 permissions: 0o644,
+                requires_root: true,
             });
         }
 
@@ -149,6 +147,10 @@ impl ManagedService for SshdService {
             .service
             .map(|s| ServiceState::new(self.name(), s.enabled, s.running));
 
-        Ok((files, service_state))
+        Ok(Plan {
+            files,
+            service_state,
+            ..Default::default()
+        })
     }
 }

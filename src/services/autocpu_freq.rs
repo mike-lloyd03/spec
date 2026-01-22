@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use toml::Table;
 
 use crate::types::{
-    managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState},
+    managed_service::{ManagedService, Plan, ServiceConfig, ServiceState},
     paths::Paths,
 };
 
@@ -20,17 +20,16 @@ impl ManagedService for AutoCpuFreqService {
         "auto-cpufreq"
     }
 
-    fn plan(
-        &self,
-        config_table: &Table,
-        _: &Paths,
-    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    fn plan(&self, config_table: &Table, _: &Paths) -> Result<Plan> {
         let config: AutoCpuFreqConfig = self.parse_config(config_table)?;
 
         let service_state = config
             .service
             .map(|state| ServiceState::new(self.name(), state.enabled, state.running));
 
-        Ok((vec![], service_state))
+        Ok(Plan {
+            service_state,
+            ..Default::default()
+        })
     }
 }

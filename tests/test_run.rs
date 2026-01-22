@@ -20,39 +20,35 @@ fn test_run() -> Result<()> {
     println!("{out}");
 
     assert_files_match(
-        &paths.etc.join("ssh/ssh_config"),
         &expected.join("ssh/ssh_config"),
+        &paths.etc.join("ssh/ssh_config"),
     );
 
     assert_files_match(
-        &paths.etc.join("ssh/sshd_config"),
         &expected.join("ssh/sshd_config"),
+        &paths.etc.join("ssh/sshd_config"),
     );
 
     assert_files_match(
-        &paths
-            .etc
-            .join("systemd/system/multi-user.target.wants/service1.service"),
         &expected.join("systemd/service1.service"),
+        &paths.etc.join("systemd/system/service1.service"),
     );
 
     assert_files_match(
-        &paths
-            .etc
-            .join("systemd/system/multi-user.target.wants/service2.service"),
         &expected.join("systemd/service2.service"),
+        &paths.etc.join("systemd/system/service2.service"),
     );
 
     assert_files_match(
+        &expected.join("udev/50-allow-hidraw-keyboard.rules"),
         &paths
             .etc
             .join("udev/rules.d/50-allow-hidraw-keyboard.rules"),
-        &expected.join("udev/50-allow-hidraw-keyboard.rules"),
     );
 
     assert_files_match(
-        &paths.etc.join("udev/udev.conf"),
         &expected.join("udev/udev.conf"),
+        &paths.etc.join("udev/udev.conf"),
     );
 
     Ok(())

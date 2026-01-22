@@ -1,10 +1,12 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 
 use crate::{
     adapters::ini::IniAdapter,
     types::{
-        managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState},
+        file_artifact::FileArtifact,
+        managed_service::{ManagedService, Plan, ServiceConfig, ServiceState},
         paths::Paths,
     },
 };
@@ -46,11 +48,7 @@ impl ManagedService for TuneDPPDService {
         "tuned"
     }
 
-    fn plan(
-        &self,
-        config: &Table,
-        paths: &Paths,
-    ) -> anyhow::Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    fn plan(&self, config: &Table, paths: &Paths) -> Result<Plan> {
         let config: TuneDPPDConfig = self.parse_config(config)?;
 
         let mut adapter = IniAdapter::new();
@@ -65,13 +63,18 @@ impl ManagedService for TuneDPPDService {
             path: paths.system_config.join("tuned/ppd.conf"),
             content,
             permissions: 0o644,
+            requires_root: true,
         };
 
         let service_state = config
             .service
             .map(|s| ServiceState::new(self.name(), s.enabled, s.running));
 
-        Ok((vec![file], service_state))
+        Ok(Plan {
+            files: vec![file],
+            service_state,
+            ..Default::default()
+        })
     }
 }
 
@@ -107,11 +110,11 @@ balanced = "balanced-battery"
             ..Default::default()
         };
 
-        let (files, _) = service.plan(&config_table, &paths)?;
+        let plan = service.plan(&config_table, &paths)?;
 
-        assert_eq!(files.len(), 1);
+        assert_eq!(plan.files.len(), 1);
 
-        if let Some(file) = files.first() {
+        if let Some(file) = plan.files.first() {
             assert_eq!(
                 file.path.to_string_lossy().to_string(),
                 "/test/tuned/ppd.conf".to_string()

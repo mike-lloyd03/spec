@@ -1,10 +1,11 @@
+# Managed by spec
 [Unit]
 Description=Service 1
 
 [Service]
+Environment='TERM="xterm"' 'VAR1="dog"'
 ExecStart=echo service1
 Type=oneshot
-Environment='TERM=xterm''VAR1=dog'
 
 [Install]
 WantedBy=multi-user.target.wants

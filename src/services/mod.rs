@@ -1,6 +1,6 @@
 use crate::services::autocpu_freq::AutoCpuFreqService;
 use crate::services::sshd::SshdService;
-use crate::services::systemd::SystemdService;
+use crate::services::systemd::{SystemdSystemService, SystemdUserService};
 use crate::services::tuned::TuneDService;
 use crate::services::tuned_ppd::TuneDPPDService;
 use crate::services::udev::UdevService;
@@ -23,7 +23,8 @@ pub fn get_service_by_name(name: &str) -> Option<Box<dyn ManagedService>> {
         "ssh_user" => Some(Box::new(SshUserService)),
         "ssh_system" => Some(Box::new(SshSystemService)),
         "sshd" => Some(Box::new(SshdService)),
-        "systemd" => Some(Box::new(SystemdService)),
+        "systemd_user" => Some(Box::new(SystemdUserService)),
+        "systemd_system" => Some(Box::new(SystemdSystemService)),
         "tuned" => Some(Box::new(TuneDService)),
         "tuned-ppd" => Some(Box::new(TuneDPPDService)),
         "udev" => Some(Box::new(UdevService)),

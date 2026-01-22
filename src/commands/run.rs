@@ -1,13 +1,12 @@
-use anyhow::{Result, bail};
+use anyhow::Result;
 use cliclack::{
     confirm, intro,
     log::{self, error, info, warning},
     note, outro,
 };
-use privesc::{PrivilegedCommand, PrivilegedOutput};
+use colored::Colorize;
 use std::{
     fs,
-    io::Write,
     os::unix::fs::PermissionsExt,
     process::{Command, Output},
 };
@@ -15,12 +14,13 @@ use toml::Table;
 
 use crate::{
     services::get_service_by_name,
-    types::run::Run,
     types::{
         app::App,
         cli::RunArgs,
-        managed_service::{FileArtifact, ManagedService, ServiceState},
+        file_artifact::FileArtifact,
+        managed_service::{ManagedService, ServiceState},
         managed_services_config::ManagedServicesConfig,
+        run::Run,
     },
     utils::{bytes_to_string, hash_bytes},
 };
@@ -38,12 +38,14 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
     let mut managed_files = vec![];
     process_services(app, args, &app.managed_services, &mut managed_files)?;
 
-    let mut new_run = Run::new(app.managed_services.clone(), &app.paths.system_config);
-    new_run.managed_files = managed_files.clone();
-    new_run.create(&app.db)?;
+    if !args.dry_run {
+        let mut new_run = Run::new(app.managed_services.clone(), &app.paths.system_config);
+        new_run.managed_files = managed_files.clone();
+        new_run.create(&app.db)?;
 
-    if let Ok(last_run) = previous_run {
-        rm_old_files(&managed_files, &last_run.managed_files)?;
+        if let Ok(last_run) = previous_run {
+            rm_old_files(&managed_files, &last_run.managed_files)?;
+        }
     }
 
     Ok(())
@@ -77,16 +79,11 @@ fn apply_service(
     args: &RunArgs,
     managed_files: &mut Vec<String>,
 ) -> Result<()> {
-    let (files, service_state) = service.plan(config, &app.paths)?;
+    let plan = service.plan(config, &app.paths)?;
     let mut needs_reload = false;
 
-    for file in files {
-        managed_files.push(
-            file.path
-                .to_str()
-                .expect("PathBuf should convert")
-                .to_owned(),
-        );
+    for file in plan.files {
+        managed_files.push(file.path.display().to_string());
 
         if ensure_file(&file, args)? {
             log::warning(format!("File {} [Changed]", file.path.display()))?;
@@ -96,8 +93,14 @@ fn apply_service(
         }
     }
 
-    if let Some(state) = service_state {
+    if let Some(state) = plan.service_state {
         apply_systemd(state, needs_reload, args)?;
+    }
+
+    if let Some(states) = plan.addl_service_states {
+        for state in states {
+            apply_systemd(state, false, args)?;
+        }
     }
 
     Ok(())
@@ -120,16 +123,18 @@ fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
     }
 }
 
-fn create_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
-    note(
-        artifact.path.to_str().unwrap_or_default(),
-        artifact.content.clone(),
-    )?;
+fn create_file(file: &FileArtifact, args: &RunArgs) -> Result<bool> {
+    note(file.path.to_str().unwrap_or_default(), file.content.clone())?;
 
-    let prompt_text = format!(
-        "{} has changed. Overwrite?",
-        artifact.path.to_str().unwrap_or("unknown")
-    );
+    let prompt_text = {
+        let path_display = file.path.display().to_string().blue();
+
+        if file.path.exists() {
+            format!("{path_display} has changed. Overwrite?")
+        } else {
+            format!("Create file {path_display}?")
+        }
+    };
 
     let should_continue;
 
@@ -141,20 +146,7 @@ fn create_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
     }
 
     if should_continue && !args.dry_run {
-        if let Some(parent_dir) = artifact.path.parent() {
-            fs::DirBuilder::new().recursive(true).create(parent_dir)?;
-        } else {
-            bail!(
-                "Parent directory for {} does not exist",
-                artifact.path.to_str().expect("")
-            );
-        }
-
-        let mut file = fs::File::create(&artifact.path)?;
-        file.write_all(artifact.content.as_bytes())?;
-
-        let perms = fs::Permissions::from_mode(artifact.permissions);
-        file.set_permissions(perms)?;
+        file.write()?;
     }
     Ok(true)
 }
@@ -193,7 +185,7 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
         log::step(format!("Reload service: {}", state.name))?;
 
         if !args.dry_run {
-            let output = cmd_from_str(&state.reload_cmd, state.requires_sudo)?;
+            let output = cmd_from_str(&state.reload_cmd, state.requires_root)?;
 
             if !output.status.success() {
                 error(format!(
@@ -212,7 +204,7 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
                 false => state.stop_cmd,
             };
 
-            cmd_from_str(&cmd, state.requires_sudo)?;
+            cmd_from_str(&cmd, state.requires_root)?;
         }
 
         if let Some(enabled) = state.enabled {
@@ -221,7 +213,7 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
                 false => state.disable_cmd,
             };
 
-            cmd_from_str(&cmd, state.requires_sudo)?;
+            cmd_from_str(&cmd, state.requires_root)?;
         }
     }
 
@@ -254,27 +246,8 @@ fn render_system_state(val: Option<bool>) -> String {
     .to_string()
 }
 
-// fn cmd_from_str(cmd_str: &str, requires_sudo: bool) -> Result<Output> {
-//     println!("Running: ${cmd_str} with sudo: {requires_sudo}");
-//     Ok(match (cmd_str.split_once(" "), requires_sudo) {
-//         (Some((cmd, args)), true) => {
-//             to_output(PrivilegedCommand::new(cmd).args(args.split(" ")).run()?)
-//         }
-//         (Some((cmd, args)), false) => Command::new(cmd).args(args.split(" ")).output()?,
-//         (None, true) => to_output(PrivilegedCommand::new(cmd_str).run()?),
-//         (None, false) => Command::new(cmd_str).output()?,
-//     })
-// }
-//
-// fn to_output(output: PrivilegedOutput) -> Output {
-//     Output {
-//         status: output.status,
-//         stdout: output.stdout.expect("stdout should be captured"),
-//         stderr: output.stderr.expect("stderr should be captured"),
-//     }
-// }
 fn cmd_from_str(cmd_str: &str, requires_sudo: bool) -> Result<Output> {
-    println!("Running: ${cmd_str} with sudo: {requires_sudo}");
+    // println!("Running: ${cmd_str} with sudo: {requires_sudo}");
     Ok(match (cmd_str.split_once(" "), requires_sudo) {
         (Some((cmd, args)), true) => Command::new("sudo")
             .arg(cmd)

@@ -42,7 +42,7 @@ impl Paths {
             dir_from_env_or_default("SPEC_USER_CONFIG_DIR", base_dirs.config_dir().to_owned())?;
 
         let system_config =
-            dir_from_env_or_default("SPEC_SYSTEM_CONFIG_DIR", PathBuf::from_str("/env")?)?;
+            dir_from_env_or_default("SPEC_SYSTEM_CONFIG_DIR", PathBuf::from_str("/etc")?)?;
 
         Ok(Self {
             spec_config,

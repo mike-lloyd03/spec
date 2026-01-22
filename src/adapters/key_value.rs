@@ -41,6 +41,7 @@ impl KeyValueAdapter {
 
     pub fn set<V: ToString>(&mut self, key: &str, value: V) -> &mut Self {
         let indent = " ".repeat(self.indent_level * self.indent_width);
+
         self.lines.push(format!(
             "{}{}{}{}",
             indent,
@@ -84,6 +85,13 @@ impl KeyValueAdapter {
                     self.process_value(key, item);
                 }
             }
+            Value::Table(table) => {
+                let mut values = Vec::new();
+                for (k, v) in table {
+                    values.push(format!("'{}={}'", k, v))
+                }
+                self.set(key, values.join(" "));
+            }
             _ => {}
         }
     }
@@ -121,5 +129,10 @@ impl KeyValueAdapter {
 
     pub fn lines(&self) -> Vec<String> {
         self.lines.clone()
+    }
+
+    pub fn push_line(&mut self, line: &str) -> &mut Self {
+        self.lines.push(line.to_string());
+        self
     }
 }

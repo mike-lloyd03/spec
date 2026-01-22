@@ -1,3 +1,4 @@
+# Managed by spec
 [Unit]
 Description=Service 2
 
@@ -5,4 +6,5 @@ Description=Service 2
 ExecStart=echo service2
 
 [Install]
-WantedBy=multi-user.target.wants graphical.wants
+WantedBy=multi-user.target.wants
+WantedBy=graphical.wants

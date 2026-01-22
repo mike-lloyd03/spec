@@ -1,8 +1,11 @@
+use std::path::PathBuf;
+
 use crate::adapters::key_value::{BoolStyle, KeyValueAdapter};
-use crate::types::managed_service::{FileArtifact, ManagedService, ServiceState};
+use crate::types::file_artifact::FileArtifact;
+use crate::types::managed_service::{ManagedService, Plan};
 use crate::types::paths::Paths;
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use toml::Table;
@@ -124,22 +127,22 @@ struct HostConfig {
     pub xauth_location: Option<String>,
 }
 
-fn plan(
-    service: &impl ManagedService,
+pub trait SshService {
+    fn config_path(paths: &Paths) -> PathBuf;
+
+    fn requires_root() -> bool;
+}
+
+fn plan<S: ManagedService + SshService>(
+    service: &S,
     config_table: &Table,
     paths: &Paths,
-) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+) -> Result<Plan> {
     let config: SshConfig = service.parse_config(config_table)?;
 
     let mut adapter = KeyValueAdapter::new(" ", "#").bool_style(BoolStyle::YesNo);
 
     adapter.comment("Managed by spec");
-
-    let path = match service.name() {
-        "ssh_system" => paths.system_config.join("ssh/ssh_config"),
-        "ssh_user" => paths.user_home.join(".ssh/config"),
-        _ => bail!("wrong service type for ssh plan"),
-    };
 
     for (k, v) in config {
         adapter
@@ -151,12 +154,16 @@ fn plan(
     }
 
     let file = FileArtifact {
-        path,
+        path: S::config_path(paths),
         content: adapter.build(),
         permissions: 0o644,
+        requires_root: S::requires_root(),
     };
 
-    Ok((vec![file], None))
+    Ok(Plan {
+        files: vec![file],
+        ..Default::default()
+    })
 }
 
 #[cfg(test)]
@@ -185,11 +192,11 @@ identity_file = "~/.ssh/custom_key"
         let ssh_service = SshSystemService;
         let paths = Paths::default();
 
-        let (files, _) = ssh_service.plan(&config_table, &paths)?;
+        let plan = ssh_service.plan(&config_table, &paths)?;
 
-        assert_eq!(files.len(), 1);
+        assert_eq!(plan.files.len(), 1);
 
-        if let Some(file) = files.first() {
+        if let Some(file) = plan.files.first() {
             assert_eq!(
                 file.path.to_string_lossy().to_string(),
                 "ssh/ssh_config".to_string()

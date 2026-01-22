@@ -1,5 +1,6 @@
 use crate::adapters::key_value::KeyValueAdapter;
-use crate::types::managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState};
+use crate::types::file_artifact::FileArtifact;
+use crate::types::managed_service::{ManagedService, Plan, ServiceConfig, ServiceState};
 use crate::types::paths::Paths;
 
 use anyhow::Result;
@@ -48,11 +49,7 @@ impl ManagedService for UdevService {
         "udev"
     }
 
-    fn plan(
-        &self,
-        config: &Table,
-        paths: &Paths,
-    ) -> Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    fn plan(&self, config: &Table, paths: &Paths) -> Result<Plan> {
         let config: UdevConfig = self.parse_config(config)?;
 
         let mut files = vec![];
@@ -66,6 +63,7 @@ impl ManagedService for UdevService {
                 path: paths.system_config.join("udev/udev.conf"),
                 content: adapter.build(),
                 permissions: 0o644,
+                requires_root: true,
             });
         }
 
@@ -79,6 +77,7 @@ impl ManagedService for UdevService {
                         .join(format!("udev/rules.d/{}", filename)),
                     content: prefixed_content,
                     permissions: 0o644,
+                    requires_root: true,
                 });
             }
         };
@@ -88,13 +87,10 @@ impl ManagedService for UdevService {
                 .reload_cmd("udevadm control --reload")
         });
 
-        // let service_state = config.service.map(|state| ServiceState {
-        //     name: self.name().to_string(),
-        //     enabled: state.enabled,
-        //     running: state.running,
-        //     reload_cmd: Some("udevadm control --reload".to_string()),
-        // });
-
-        Ok((files, service_state))
+        Ok(Plan {
+            files,
+            service_state,
+            ..Default::default()
+        })
     }
 }

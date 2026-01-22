@@ -1,10 +1,12 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 
 use crate::{
     adapters::key_value::{BoolStyle, KeyValueAdapter},
     types::{
-        managed_service::{FileArtifact, ManagedService, ServiceConfig, ServiceState},
+        file_artifact::FileArtifact,
+        managed_service::{ManagedService, Plan, ServiceConfig, ServiceState},
         paths::Paths,
     },
 };
@@ -30,11 +32,7 @@ impl ManagedService for TuneDService {
         "tuned"
     }
 
-    fn plan(
-        &self,
-        config: &Table,
-        paths: &Paths,
-    ) -> anyhow::Result<(Vec<FileArtifact>, Option<ServiceState>)> {
+    fn plan(&self, config: &Table, paths: &Paths) -> Result<Plan> {
         let config: TuneDConfig = self.parse_config(config)?;
         let mut files = Vec::new();
 
@@ -47,6 +45,7 @@ impl ManagedService for TuneDService {
                 path: paths.system_config.join("tuned/tuned-main.conf"),
                 content: adapter.build(),
                 permissions: 0o644,
+                requires_root: true,
             });
         }
 
@@ -54,7 +53,11 @@ impl ManagedService for TuneDService {
             .service
             .map(|s| ServiceState::new(self.name(), s.enabled, s.running));
 
-        Ok((files, service_state))
+        Ok(Plan {
+            files,
+            service_state,
+            ..Default::default()
+        })
     }
 }
 
@@ -85,11 +88,11 @@ default_instance_priority = 0
             ..Default::default()
         };
 
-        let (files, _) = service.plan(&config_table, &paths)?;
+        let plan = service.plan(&config_table, &paths)?;
 
-        assert_eq!(files.len(), 1);
+        assert_eq!(plan.files.len(), 1);
 
-        if let Some(file) = files.first() {
+        if let Some(file) = plan.files.first() {
             assert_eq!(
                 file.path.to_string_lossy().to_string(),
                 "/test/tuned/tuned-main.conf".to_string()
