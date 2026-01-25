@@ -173,7 +173,14 @@ fn check_and_fix_permissions(artifact: &FileArtifact, args: &RunArgs) -> Result<
         }
 
         if should_continue {
-            fs::set_permissions(&artifact.path, target_perms)?;
+            if artifact.requires_root {
+                Command::new("sudo")
+                    .arg("chmod")
+                    .arg(format!("{:o}", artifact.permissions))
+                    .arg(&artifact.path);
+            } else {
+                fs::set_permissions(&artifact.path, target_perms)?;
+            }
         }
         return Ok(true);
     }
@@ -228,10 +235,9 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
 
 fn rm_old_files(new_run_files: &[String], prev_run_files: &[String]) -> Result<()> {
     for filepath in prev_run_files {
-        println!("Old file: {filepath}");
         if !new_run_files.contains(filepath) {
             info(format!("Removing orphaned file: {}", filepath))?;
-            fs::remove_file(filepath)?;
+            Command::new("sudo").arg("rm").arg(filepath).status()?;
         }
     }
     Ok(())

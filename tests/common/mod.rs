@@ -1,5 +1,5 @@
-mod create_shim;
-use create_shim::create_shim;
+mod shims;
+use shims::create_shim;
 
 use std::{
     env, fs,
@@ -8,6 +8,8 @@ use std::{
 
 use assert_cmd::Command;
 use tempfile::TempDir;
+
+use crate::common::shims::{create_install_shim, create_sudo_shim};
 
 pub struct TestPaths {
     pub root: TempDir,
@@ -41,10 +43,6 @@ impl TestPaths {
 
     pub fn config_dir(&mut self, dir: &Path) {
         self.config = dir.to_owned();
-    }
-
-    pub fn get_root(&self) -> PathBuf {
-        self.root.path().to_path_buf()
     }
 }
 
@@ -82,7 +80,8 @@ pub fn setup_cmd<'a>(
         env::join_paths(std::iter::once(paths.bin.clone()).chain(env::split_paths(&current_path)))
             .expect("Failed to construct new PATH");
 
-    create_shim(paths, "sudo");
+    create_sudo_shim(paths);
+    create_install_shim(paths);
     create_shim(paths, "systemctl");
     create_shim(paths, "udevadm");
 

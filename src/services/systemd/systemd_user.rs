@@ -68,7 +68,7 @@ ExecStart=test_program
 "#
             .to_string(),
             permissions: 0o644,
-            requires_root: true,
+            requires_root: false,
         };
 
         let expected_state = ServiceState::builder("test1.service")
