@@ -15,6 +15,7 @@ pub struct KeyValueAdapter {
     lines: Vec<String>,
     indent_level: usize,
     indent_width: usize,
+    sequence_separator: String,
 }
 
 impl KeyValueAdapter {
@@ -26,11 +27,17 @@ impl KeyValueAdapter {
             lines: Vec::new(),
             indent_level: 0,
             indent_width: 4,
+            sequence_separator: "multi".to_string(),
         }
     }
 
     pub fn bool_style(mut self, style: BoolStyle) -> Self {
         self.bool_style = style;
+        self
+    }
+
+    pub fn sequence_separator(mut self, separator: &str) -> Self {
+        self.sequence_separator = separator.to_string();
         self
     }
 
@@ -66,33 +73,42 @@ impl KeyValueAdapter {
     }
 
     fn process_value(&mut self, key: &str, val: &Value) {
-        match val {
-            Value::String(s) => {
-                self.set(key, s);
-            }
-            Value::Integer(i) => {
-                self.set(key, i);
-            }
-            Value::Float(f) => {
-                self.set(key, f);
-            }
-            Value::Boolean(b) => {
-                let s = self.format_bool(*b);
-                self.set(key, s);
-            }
-            Value::Array(arr) => {
+        if let Value::Array(arr) = val {
+            if self.sequence_separator == "multi" {
                 for item in arr {
                     self.process_value(key, item);
                 }
+            } else {
+                self.set(key, self.stringify(val));
+            }
+        } else {
+            self.set(key, self.stringify(val));
+        }
+    }
+
+    fn stringify(&self, val: &Value) -> String {
+        match val {
+            Value::String(s) => s.to_string(),
+            Value::Integer(i) => i.to_string(),
+            Value::Float(f) => f.to_string(),
+            Value::Boolean(b) => match self.bool_style {
+                BoolStyle::TrueFalse => b.to_string(),
+                BoolStyle::YesNo => if *b { "yes" } else { "no" }.to_string(),
+                BoolStyle::OneZero => if *b { "1" } else { "0" }.to_string(),
+            },
+            Value::Datetime(d) => d.to_string(),
+            Value::Array(arr) => {
+                let s: Vec<String> = arr.iter().map(|v| self.stringify(v)).collect();
+                s.join(&self.sequence_separator)
             }
             Value::Table(table) => {
                 let mut values = Vec::new();
                 for (k, v) in table {
                     values.push(format!("'{}={}'", k, v))
                 }
-                self.set(key, values.join(" "));
+                values.join(" ")
             }
-            _ => {}
+            _ => "".to_string(),
         }
     }
 

@@ -19,11 +19,12 @@ impl IniAdapter {
     }
 
     pub fn section(&mut self, heading: &str, content: impl Serialize) -> Result<&mut Self> {
-        self.lines.push(format!("[{heading}]"));
-
-        let mut adapter = KeyValueAdapter::new("=", "#");
-        adapter.parse_struct(&content)?.empty_line();
-        self.lines.append(&mut adapter.lines());
+        let mut adapter = KeyValueAdapter::new("=", "#").sequence_separator(",");
+        if adapter.parse_struct(&content).is_ok() {
+            self.lines.push(format!("[{heading}]"));
+            adapter.empty_line();
+            self.lines.append(&mut adapter.lines());
+        }
 
         Ok(self)
     }

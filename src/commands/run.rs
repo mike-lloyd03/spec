@@ -42,10 +42,10 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
         let mut new_run = Run::new(app.managed_services.clone(), &app.paths.system_config);
         new_run.managed_files = managed_files.clone();
         new_run.create(&app.db)?;
+    }
 
-        if let Ok(last_run) = previous_run {
-            rm_old_files(&managed_files, &last_run.managed_files)?;
-        }
+    if let Ok(last_run) = previous_run {
+        rm_old_files(&managed_files, &last_run.managed_files, args.dry_run)?;
     }
 
     Ok(())
@@ -233,11 +233,15 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
     Ok(())
 }
 
-fn rm_old_files(new_run_files: &[String], prev_run_files: &[String]) -> Result<()> {
+fn rm_old_files(new_run_files: &[String], prev_run_files: &[String], dry_run: bool) -> Result<()> {
     for filepath in prev_run_files {
         if !new_run_files.contains(filepath) {
-            info(format!("Removing orphaned file: {}", filepath))?;
-            Command::new("sudo").arg("rm").arg(filepath).status()?;
+            if !dry_run {
+                info(format!("Removing orphaned file: {}", filepath))?;
+                Command::new("sudo").arg("rm").arg(filepath).status()?;
+            } else {
+                info(format!("Would remove orphaned file: {}", filepath))?;
+            }
         }
     }
     Ok(())

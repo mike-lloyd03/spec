@@ -30,12 +30,6 @@ impl FileArtifact {
             .arg(&self.path)
             .status()?;
 
-        println!(
-            "Installing {} to {}",
-            file.path().display(),
-            &self.path.display()
-        );
-
         if !status.success() {
             bail!("Failed to install file to {:?}", self.path);
         }
