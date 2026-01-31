@@ -1,4 +1,5 @@
 use crate::services::autocpu_freq::AutoCpuFreqService;
+use crate::services::fw_fanctrl::FwFanCtrlService;
 use crate::services::sddm::SddmService;
 use crate::services::sshd::SshdService;
 use crate::services::systemd::{SystemdSystemService, SystemdUserService};
@@ -11,6 +12,7 @@ use crate::{
 };
 
 mod autocpu_freq;
+mod fw_fanctrl;
 mod sddm;
 mod ssh;
 mod sshd;
@@ -22,6 +24,7 @@ mod udev;
 pub fn get_service_by_name(name: &str) -> Option<Box<dyn ManagedService>> {
     match name {
         "auto-cpufreq" => Some(Box::new(AutoCpuFreqService)),
+        "fw-fanctrl" => Some(Box::new(FwFanCtrlService)),
         "sddm" => Some(Box::new(SddmService)),
         "ssh_user" => Some(Box::new(SshUserService)),
         "ssh_system" => Some(Box::new(SshSystemService)),

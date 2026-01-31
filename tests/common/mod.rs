@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod shims;
 use shims::create_shim;
 

@@ -20,11 +20,3 @@ pub fn dir_from_env_or_default(var_name: &str, default: PathBuf) -> Result<PathB
         default
     })
 }
-
-pub fn string_from_env_or_default(var_name: &str, default: &str) -> Result<String> {
-    Ok(if let Ok(s) = env::var(var_name) {
-        s
-    } else {
-        default.to_string()
-    })
-}

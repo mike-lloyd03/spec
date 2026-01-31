@@ -108,15 +108,6 @@ impl KeyValueAdapter {
                 }
                 values.join(" ")
             }
-            _ => "".to_string(),
-        }
-    }
-
-    fn format_bool(&self, val: bool) -> String {
-        match self.bool_style {
-            BoolStyle::TrueFalse => val.to_string(),
-            BoolStyle::YesNo => if val { "yes" } else { "no" }.to_string(),
-            BoolStyle::OneZero => if val { "1" } else { "0" }.to_string(),
         }
     }
 

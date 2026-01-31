@@ -31,7 +31,9 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
     if let Ok(last_run) = &previous_run
         && app.managed_services == last_run.data
     {
+        intro("")?;
         warning("No changes from previous run")?;
+        outro("")?;
         return Ok(());
     }
 
@@ -225,8 +227,8 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
     }
 
     log::info(format!(
-        "[Service] Ensure {} is enabled={} active={}",
-        state.name,
+        "{} is enabled={} active={}",
+        state.name.blue(),
         render_system_state(state.enabled),
         render_system_state(state.running)
     ))?;
@@ -234,16 +236,20 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
 }
 
 fn rm_old_files(new_run_files: &[String], prev_run_files: &[String], dry_run: bool) -> Result<()> {
+    intro("Removing orphaned files")?;
+
     for filepath in prev_run_files {
         if !new_run_files.contains(filepath) {
             if !dry_run {
-                info(format!("Removing orphaned file: {}", filepath))?;
+                info(filepath)?;
                 Command::new("sudo").arg("rm").arg(filepath).status()?;
             } else {
-                info(format!("Would remove orphaned file: {}", filepath))?;
+                info(format!("{} [Dry run]", filepath))?;
             }
         }
     }
+
+    outro("/n")?;
     Ok(())
 }
 
