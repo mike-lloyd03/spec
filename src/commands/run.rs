@@ -30,6 +30,7 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
 
     if let Ok(last_run) = &previous_run
         && app.managed_services == last_run.data
+        && last_run.success
     {
         intro("")?;
         warning("No changes from previous run")?;
@@ -38,13 +39,17 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
     }
 
     let mut managed_files = vec![];
-    process_services(app, args, &app.managed_services, &mut managed_files)?;
+    let mut run_success = true;
+    let result = process_services(app, args, &app.managed_services, &mut managed_files, &mut run_success);
 
     if !args.dry_run {
         let mut new_run = Run::new(app.managed_services.clone(), &app.paths.system_config);
         new_run.managed_files = managed_files.clone();
+        new_run.success = result.is_ok() && run_success;
         new_run.create(&app.db)?;
     }
+
+    result?;
 
     if let Ok(last_run) = previous_run {
         rm_old_files(&managed_files, &last_run.managed_files, args.dry_run)?;
@@ -58,12 +63,13 @@ pub fn process_services(
     args: &RunArgs,
     services: &ManagedServicesConfig,
     managed_files: &mut Vec<String>,
+    run_success: &mut bool,
 ) -> Result<()> {
     for (key, value) in &services.data {
         if let Some(table) = value.as_table() {
             if let Some(service) = get_service_by_name(key) {
                 intro(format!("Service: {}", key))?;
-                apply_service(app, service, table, args, managed_files)?;
+                apply_service(app, service, table, args, managed_files, run_success)?;
                 outro("\n")?;
             } else {
                 log::error(format!("Unknown service section: {}", key))?;
@@ -80,6 +86,7 @@ fn apply_service(
     config: &Table,
     args: &RunArgs,
     managed_files: &mut Vec<String>,
+    run_success: &mut bool,
 ) -> Result<()> {
     let plan = service.plan(config, &app.paths)?;
     let mut needs_reload = false;
@@ -87,7 +94,7 @@ fn apply_service(
     for file in plan.files {
         managed_files.push(file.path.display().to_string());
 
-        if ensure_file(&file, args)? {
+        if ensure_file(&file, args, run_success)? {
             log::warning(format!("File {} [Changed]", file.path.display()))?;
             needs_reload = true;
         } else {
@@ -108,24 +115,18 @@ fn apply_service(
     Ok(())
 }
 
-fn ensure_file(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
+fn ensure_file(artifact: &FileArtifact, args: &RunArgs, run_success: &mut bool) -> Result<bool> {
     let new_hash = hash_bytes(artifact.content.as_bytes());
-
-    let current_hash = if artifact.path.exists() {
-        let bytes = fs::read(&artifact.path)?;
-        Some(hash_bytes(&bytes))
-    } else {
-        None
-    };
+    let current_hash = artifact.current_content()?.map(|b| hash_bytes(&b));
 
     if Some(new_hash) != current_hash {
-        create_file(artifact, args)
+        create_file(artifact, args, run_success)
     } else {
-        check_and_fix_permissions(artifact, args)
+        check_and_fix_permissions(artifact, args, run_success)
     }
 }
 
-fn create_file(file: &FileArtifact, args: &RunArgs) -> Result<bool> {
+fn create_file(file: &FileArtifact, args: &RunArgs, run_success: &mut bool) -> Result<bool> {
     note(file.path.to_str().unwrap_or_default(), file.content.clone())?;
 
     let prompt_text = {
@@ -147,22 +148,28 @@ fn create_file(file: &FileArtifact, args: &RunArgs) -> Result<bool> {
         should_continue = confirm(prompt_text).initial_value(true).interact()?;
     }
 
-    if should_continue && !args.dry_run {
+    if !should_continue {
+        *run_success = false;
+        return Ok(false);
+    }
+
+    if !args.dry_run {
         file.write()?;
     }
+
     Ok(true)
 }
 
-fn check_and_fix_permissions(artifact: &FileArtifact, args: &RunArgs) -> Result<bool> {
-    let target_perms = fs::Permissions::from_mode(artifact.permissions);
-    let existing_perms = fs::metadata(&artifact.path)?.permissions();
+fn check_and_fix_permissions(artifact: &FileArtifact, args: &RunArgs, run_success: &mut bool) -> Result<bool> {
+    let target_mode = artifact.permissions & 0o777;
+    let existing_mode = artifact.current_mode()?;
 
-    if existing_perms.mode() & 0o777 != target_perms.mode() {
+    if existing_mode != target_mode {
         let prompt_text = format!(
             "Permissions are incorrect for {}. (Are {:o} should be {:o}).\nCorrect them?",
             artifact.path.to_str().unwrap_or_default(),
-            existing_perms.mode() & 0o777,
-            target_perms.mode()
+            existing_mode,
+            target_mode
         );
 
         let should_continue;
@@ -181,10 +188,12 @@ fn check_and_fix_permissions(artifact: &FileArtifact, args: &RunArgs) -> Result<
                     .arg(format!("{:o}", artifact.permissions))
                     .arg(&artifact.path);
             } else {
-                fs::set_permissions(&artifact.path, target_perms)?;
+                fs::set_permissions(&artifact.path, fs::Permissions::from_mode(target_mode))?;
             }
+        } else {
+            *run_success = false;
         }
-        return Ok(true);
+        return Ok(should_continue);
     }
     Ok(false)
 }
@@ -249,7 +258,7 @@ fn rm_old_files(new_run_files: &[String], prev_run_files: &[String], dry_run: bo
         }
     }
 
-    outro("/n")?;
+    outro("")?;
     Ok(())
 }
 

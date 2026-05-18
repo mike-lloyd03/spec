@@ -13,6 +13,7 @@ pub struct Run {
     pub data: ManagedServicesConfig,
     pub sys_config_dir: PathBuf,
     pub managed_files: Vec<String>,
+    pub success: bool,
 }
 
 struct RunDB {
@@ -20,6 +21,7 @@ struct RunDB {
     pub data: String,
     pub sys_config_dir: String,
     pub managed_files: String,
+    pub success: bool,
 }
 
 impl TryFrom<&Run> for RunDB {
@@ -42,6 +44,7 @@ impl TryFrom<&Run> for RunDB {
             data,
             sys_config_dir,
             managed_files,
+            success: value.success,
         })
     }
 }
@@ -53,6 +56,7 @@ impl Run {
             data,
             sys_config_dir: sys_config_dir.to_owned(),
             managed_files: vec![],
+            success: false,
         }
     }
 
@@ -60,15 +64,15 @@ impl Run {
         let run_db: RunDB = self.try_into()?;
 
         conn.execute(
-            "INSERT INTO runs (data, sys_config_dir, managed_files) values (?1, ?2, ?3)",
-            [run_db.data, run_db.sys_config_dir, run_db.managed_files],
+            "INSERT INTO runs (data, sys_config_dir, managed_files, success) values (?1, ?2, ?3, ?4)",
+            [run_db.data, run_db.sys_config_dir, run_db.managed_files, run_db.success.to_string()],
         )?;
         Ok(())
     }
 
     pub fn get_previous(conn: &Connection) -> Result<Self> {
         let s: Self = conn.query_one(
-            "SELECT id, data, sys_config_dir, managed_files from runs order by id desc limit 1",
+            "SELECT id, data, sys_config_dir, managed_files, success from runs order by id desc limit 1",
             [],
             |row| row.try_into(),
         )?;
@@ -84,12 +88,13 @@ impl Run {
         let run_db: RunDB = self.try_into()?;
 
         conn.execute(
-            "UPDATE set (data = ?2, sys_config_dir = ?3, managed_files = ?4) ON runs WHERE id = ?1",
+            "UPDATE set (data = ?2, sys_config_dir = ?3, managed_files = ?4, success = ?5) ON runs WHERE id = ?1",
             [
                 run_db.id.to_string(),
                 run_db.data,
                 run_db.sys_config_dir,
                 run_db.managed_files,
+                run_db.success.to_string(),
             ],
         )?;
         Ok(())
@@ -117,6 +122,7 @@ impl<'a> TryFrom<&Row<'a>> for Run {
             data,
             sys_config_dir,
             managed_files: files,
+            success: row.get("success")?,
         })
     }
 }

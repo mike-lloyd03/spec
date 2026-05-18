@@ -19,6 +19,11 @@ const MIGRATIONS: &[M<'_>] = &[
     ALTER TABLE runs ADD COLUMN managed_files JSON;
     "#,
     ),
+    M::up(
+        r#"
+    ALTER TABLE runs ADD COLUMN success BOOLEAN;
+    "#,
+    ),
 ];
 
 pub fn connect_db(state_dir: &Path) -> Result<Connection> {
