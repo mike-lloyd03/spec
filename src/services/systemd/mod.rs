@@ -327,7 +327,7 @@ ExecStart=test_program
 Description=test2 desc
 
 [Service]
-Environment='VAR1="val1"' 'VAR2="val2"'
+Environment='VAR1=val1' 'VAR2=val2'
 ExecStart=test_program_2
 "#
                 .to_string(),

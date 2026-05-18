@@ -104,7 +104,7 @@ impl KeyValueAdapter {
             Value::Table(table) => {
                 let mut values = Vec::new();
                 for (k, v) in table {
-                    values.push(format!("'{}={}'", k, v))
+                    values.push(format!("'{}={}'", k, self.stringify(v)))
                 }
                 values.join(" ")
             }
