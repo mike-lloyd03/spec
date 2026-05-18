@@ -34,9 +34,10 @@ pub fn create_sudo_shim(paths: &TestPaths) {
 
     let content = format!(
         r#"#!/bin/sh
-if [ "$1" != "install" ]; then
-    echo -n "sudo " >> "{}"
-fi
+case "$1" in
+    install|cat|stat) ;;
+    *) echo -n "sudo " >> "{}" ;;
+esac
 exec "$@"
 "#,
         log_file.display()

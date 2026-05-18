@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Error, Result};
-use rusqlite::{Connection, Error::InvalidColumnType, Row, types::Type::Text};
+use rusqlite::{Connection, Error::InvalidColumnType, Row, params, types::Type::Text};
 
 use crate::types::managed_services_config::ManagedServicesConfig;
 
@@ -65,7 +65,7 @@ impl Run {
 
         conn.execute(
             "INSERT INTO runs (data, sys_config_dir, managed_files, success) values (?1, ?2, ?3, ?4)",
-            [run_db.data, run_db.sys_config_dir, run_db.managed_files, run_db.success.to_string()],
+            params![run_db.data, run_db.sys_config_dir, run_db.managed_files, run_db.success],
         )?;
         Ok(())
     }
@@ -94,7 +94,7 @@ impl Run {
                 run_db.data,
                 run_db.sys_config_dir,
                 run_db.managed_files,
-                run_db.success.to_string(),
+                run_db.success.to_string()
             ],
         )?;
         Ok(())

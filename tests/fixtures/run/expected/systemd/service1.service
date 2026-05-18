@@ -3,7 +3,7 @@
 Description=Service 1
 
 [Service]
-Environment='TERM="xterm"' 'VAR1="dog"'
+Environment='TERM=xterm' 'VAR1=dog'
 ExecStart=echo service1
 Type=oneshot
 

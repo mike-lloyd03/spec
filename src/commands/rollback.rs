@@ -12,9 +12,11 @@ pub fn rollback(app: &App, args: &RollbackArgs) -> Result<()> {
         let run_args = RunArgs {
             dry_run: false,
             noconfirm: args.noconfirm,
+            force: false,
         };
 
         let mut _success = true;
+
         process_services(app, &run_args, &last_run.data, &mut vec![], &mut _success)?;
 
         last_run.delete(&app.db)?;

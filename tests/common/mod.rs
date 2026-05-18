@@ -46,6 +46,10 @@ impl TestPaths {
     pub fn config_dir(&mut self, dir: &Path) {
         self.config = dir.to_owned();
     }
+
+    pub fn get_root(&self) -> PathBuf {
+        self.root.path().to_path_buf()
+    }
 }
 
 pub fn assert_files_match(actual_path: &Path, expected_path: &Path) {

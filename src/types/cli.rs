@@ -35,6 +35,10 @@ pub struct RunArgs {
     /// Overwrite existing files without confirmation
     #[arg(long)]
     pub noconfirm: bool,
+
+    /// Run all specifications even if the config hasn't changed
+    #[arg(short, long)]
+    pub force: bool,
 }
 
 #[derive(Args)]

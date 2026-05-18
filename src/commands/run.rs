@@ -30,17 +30,23 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
 
     if let Ok(last_run) = &previous_run
         && app.managed_services == last_run.data
+        && !args.force
         && last_run.success
     {
-        intro("")?;
         warning("No changes from previous run")?;
-        outro("")?;
         return Ok(());
     }
 
     let mut managed_files = vec![];
     let mut run_success = true;
-    let result = process_services(app, args, &app.managed_services, &mut managed_files, &mut run_success);
+
+    let result = process_services(
+        app,
+        args,
+        &app.managed_services,
+        &mut managed_files,
+        &mut run_success,
+    );
 
     if !args.dry_run {
         let mut new_run = Run::new(app.managed_services.clone(), &app.paths.system_config);
@@ -48,7 +54,6 @@ pub fn run(app: &App, args: &RunArgs) -> Result<()> {
         new_run.success = result.is_ok() && run_success;
         new_run.create(&app.db)?;
     }
-
     result?;
 
     if let Ok(last_run) = previous_run {
@@ -117,6 +122,7 @@ fn apply_service(
 
 fn ensure_file(artifact: &FileArtifact, args: &RunArgs, run_success: &mut bool) -> Result<bool> {
     let new_hash = hash_bytes(artifact.content.as_bytes());
+
     let current_hash = artifact.current_content()?.map(|b| hash_bytes(&b));
 
     if Some(new_hash) != current_hash {
@@ -160,7 +166,11 @@ fn create_file(file: &FileArtifact, args: &RunArgs, run_success: &mut bool) -> R
     Ok(true)
 }
 
-fn check_and_fix_permissions(artifact: &FileArtifact, args: &RunArgs, run_success: &mut bool) -> Result<bool> {
+fn check_and_fix_permissions(
+    artifact: &FileArtifact,
+    args: &RunArgs,
+    run_success: &mut bool,
+) -> Result<bool> {
     let target_mode = artifact.permissions & 0o777;
     let existing_mode = artifact.current_mode()?;
 
@@ -236,8 +246,8 @@ fn apply_systemd(state: ServiceState, needs_reload: bool, args: &RunArgs) -> Res
     }
 
     log::info(format!(
-        "{} is enabled={} active={}",
-        state.name.blue(),
+        "[Service] Ensure {} is enabled={} active={}",
+        state.name,
         render_system_state(state.enabled),
         render_system_state(state.running)
     ))?;

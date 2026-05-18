@@ -11,7 +11,7 @@ fn test_systemctl() -> Result<()> {
     let expected = fixtures.join("expected");
     let paths = TestPaths::new(&fixtures.join("config"));
 
-    let command_log = paths.root.path().join("commands.log");
+    let command_log = paths.get_root().join("commands.log");
 
     let cmd = &mut cargo_bin_cmd!();
     let out = setup_cmd(cmd, &paths, "run", Some(vec!["--noconfirm"]))
@@ -21,7 +21,7 @@ fn test_systemctl() -> Result<()> {
 
     println!("{}", out);
 
-    assert_files_match(&expected.join("systemctl_output"), &command_log);
+    assert_files_match(&command_log, &expected.join("systemctl_output"));
 
     Ok(())
 }
